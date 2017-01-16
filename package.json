@@ -1,0 +1,28 @@
+{
+  "name": "toeknee-facebook-messenger-bot",
+  "version": "1.0.0",
+  "description": "facebook messenger app",
+  "main": "index.js",
+  "config": {},
+  "scripts": {
+    "test": "./node_modules/.bin/eslint $npm_package_config_execFile",
+    "start": "pm2 start pm2.config.js",
+    "stop": "pm2 stop $npm_package_config_appName",
+    "restart": "pm2 restart $npm_package_config_appName"
+  },
+  "author": "toeknee <toeknee@toeknee.io>",
+  "license": "MIT",
+  "dependencies": {
+    "facebook-chat-api": "1.2.0",
+    "lodash": "4.17.4",
+    "lyrics-fetcher": "1.0.2",
+    "moment": "2.17.1",
+    "moment-precise-range-plugin": "1.2.0",
+    "request-promise": "4.1.1"
+  },
+  "devDependencies": {
+    "eslint": "3.13.1",
+    "eslint-config-airbnb-base": "11.0.1",
+    "eslint-plugin-import": "2.2.0"
+  }
+}
