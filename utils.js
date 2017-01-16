@@ -82,5 +82,22 @@ const self = module.exports = {
     });
     return msg;
   },
-
+  checkPresence: (chat, event) => {
+    if (event.threadID && config.facebook.threadIds.indexOf(event.threadID) > -1) {
+      chat.getThreadInfo(event.threadID, (getThreadErr, info) => {
+        if (getThreadErr) {
+          console.error(getThreadErr);
+        } else if (info) {
+          const userIds = config.facebook.userId;
+          const pIds = info.participantIDs;
+          if (pIds.indexOf(userIds.tonyBot) === -1
+          || pIds.indexOf(userIds.tony) === -1) {
+            console.log(`re-adding tonys for ${event.threadID}`);
+            chat.addUserToGroup(userIds.tonyBot, event.threadID);
+            chat.addUserToGroup(userIds.tony, event.threadID);
+          }
+        }
+      });
+    }
+  },
 };

@@ -6,3 +6,4 @@ event-types.json
 app-state.json
 .ftpignore
 examples-responses/
+npm_delete

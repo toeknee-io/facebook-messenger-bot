@@ -18,7 +18,6 @@
   "dependencies": {
     "facebook-chat-api": "1.2.0",
     "lodash": "4.17.4",
-    "lyrics-fetcher": "1.0.2",
     "moment": "2.17.1",
     "moment-precise-range-plugin": "1.2.0",
     "request-promise": "4.1.1"
