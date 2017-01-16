@@ -10,7 +10,7 @@
     "test": "./node_modules/.bin/eslint .",
     "start": "pm2 start $npm_package_config_pm2Config",
     "stop": "pm2 stop $npm_package_config_pm2Config",
-    "restart": "pm2 restart $npm_package_config_pm2Config",
+    "restart": "pm2 restart $npm_package_config_pm2Config && pm2 logs",
     "delete": "pm2 delete $npm_package_config_pm2Config"
   },
   "author": "toeknee <toeknee@toeknee.io>",
