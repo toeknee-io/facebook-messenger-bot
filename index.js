@@ -15,8 +15,8 @@ const config = require('./config.json');
 const moment = require('./moment-wrapped.js');
 const rp = require('request-promise');
 
-const appState = JSON.parse(fs.readFileSync('app-state.json', 'utf8'));
-const credentials = typeof appState === 'object'
+const appState = _.attempt(() => JSON.parse(fs.readFileSync('app-state.json', 'utf8')));
+const credentials = !_.isError(appState) && typeof appState === 'object'
   ? { appState }
   : config.chat.credentials;
 
