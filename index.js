@@ -5,8 +5,6 @@
   automate getting/setting fanduel contestId
 */
 
-console.dir(process.env);
-
 const fs = require('fs');
 const _ = require('lodash');
 const utils = require('./utils.js');
