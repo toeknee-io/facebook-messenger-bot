@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "facebook messenger app",
   "main": "index.js",
-  "config": {},
+  "config": {
+    "pm2Config": "pm2.config.js"
+  },
   "scripts": {
-    "test": "./node_modules/.bin/eslint $npm_package_config_execFile",
-    "start": "pm2 start pm2.config.js",
-    "stop": "pm2 stop $npm_package_config_appName",
-    "restart": "pm2 restart $npm_package_config_appName"
+    "test": "./node_modules/.bin/eslint .",
+    "start": "pm2 start $npm_package_config_pm2Config",
+    "stop": "pm2 stop $npm_package_config_pm2Config",
+    "restart": "pm2 restart $npm_package_config_pm2Config",
+    "delete": "pm2 delete $npm_package_config_pm2Config"
   },
   "author": "toeknee <toeknee@toeknee.io>",
   "license": "MIT",
