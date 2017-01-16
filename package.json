@@ -1,7 +1,7 @@
 {
   "name": "toeknee-facebook-messenger-bot",
   "version": "1.0.0",
-  "description": "facebook messenger app",
+  "description": " bots gon' bot",
   "main": "index.js",
   "config": {
     "pm2Config": "pm2.config.js"

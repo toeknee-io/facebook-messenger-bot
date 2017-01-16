@@ -7,10 +7,10 @@
 
 const fs = require('fs');
 const _ = require('lodash');
-const utils = require('./utils.js');
 const rp = require('request-promise');
 const config = require('./config.json');
-const moment = require('./moment-wrapped.js');
+const utils = require('./lib/utils.js');
+const moment = require('./lib/moment-wrapped.js');
 
 const appState = _.attempt(() => JSON.parse(fs.readFileSync('app-state.json', 'utf8')));
 const credentials = !_.isError(appState) && typeof appState === 'object'
@@ -55,10 +55,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           rp(opts).then((json) => {
             const contest = json.contests[0];
             const entered = contest.entries.count;
-            /* eslint-disable comma-dangle */
             const msg = `${contest.name}\u000A--\u000AID: ${contest.id}\u000AEntered: ${entered}/${contest.size.min}`;
             chat.sendMessage(msg, toId);
-            /* eslint-enable comma-dangle */
           }).catch(err => console.error(`[${cmd}] failed: ${err}`));
         }
 
@@ -66,7 +64,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           rp(opts).then((json) => {
             const leaderboard = utils.getFanDuelLeaderboard(json);
             chat.sendMessage(leaderboard, toId);
-          });
+          }).catch(err => console.error(`[${cmd}] failed: ${err}`));
         }
       }
 
