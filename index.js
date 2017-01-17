@@ -36,10 +36,19 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     utils.checkPresence(chat, event);
     console.log('event: %j', event);
 
-    if (body && _.lowerCase(body).indexOf('no') > -1
+
+    if (body && _.words(_.lowerCase(body)).indexOf('no') > -1
       && config.facebook.threadIds.indexOf(event.threadID) > -1
       && event.senderID !== config.facebook.userId.tonyBot) {
       chat.sendMessage('No', event.threadID);
+    } else if (body && _.intersection(_.words(_.lowerCase(body)), ['kevin', 'kvn', 'krvn', 'fenwick']).length
+      && config.facebook.threadIds.indexOf(event.threadID) > -1
+      && event.senderID !== config.facebook.userId.tonyBot) {
+      chat.sendMessage('eff kevin', event.threadID);
+    }
+
+    if (cmd === 'sleep' && event.senderID === config.facebook.userId.tony) {
+      utils.sleep(_.words(body)[1]);
     }
 
     if (utils.canRespond(cmd, event)) {

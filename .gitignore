@@ -8,3 +8,4 @@ app-state.json
 examples-responses/
 npm_delete
 .eslintrc.yml
+test.js
