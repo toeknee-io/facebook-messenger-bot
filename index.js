@@ -5,61 +5,83 @@
   automate getting/setting fanduel contestId
 */
 
-const fs = require('fs');
 const _ = require('lodash');
 const rp = require('request-promise');
 const config = require('./config.json');
 const utils = require('./lib/utils.js');
 const moment = require('./lib/moment-wrapped.js');
 
-const appState = _.attempt(() => JSON.parse(fs.readFileSync('app-state.json', 'utf8')));
+const appState = utils.readAppState();
 const credentials = !_.isError(appState) && typeof appState === 'object'
   ? { appState }
   : config.chat.credentials.tonyBot;
+
+const jerbonics = [];
 
 require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
 
-  fs.writeFileSync('app-state.json', JSON.stringify(chat.getAppState()), 'utf8');
+  utils.writeAppState(chat.getAppState());
 
   chat.setOptions(config.chat.options);
-
   chat.listen((listenErr, event) => {
     if (listenErr) {
       throw listenErr;
     }
-
-    utils.checkPresence(chat, event);
-
-    console.log('event: %j', event);
-
     const body = event.body;
     const cmd = utils.getCmd(body);
+
+    utils.checkPresence(chat, event);
+    console.log('event: %j', event);
+
+    if (body && _.lowerCase(body).indexOf('no') > -1
+      && config.facebook.threadIds.indexOf(event.threadID) > -1
+      && event.senderID !== config.facebook.userId.tonyBot) {
+      chat.sendMessage('No', event.threadID);
+    }
 
     if (utils.canRespond(cmd, event)) {
       const toId = event.threadID;
       const subCmd = utils.getSubCmd(cmd, event);
 
+      if (cmd === 'kick') {
+        if (event.senderID === config.facebook.userId.tony) {
+          const kickId = config.facebook.userId[subCmd];
+          if (kickId) {
+            console.log(`[${cmd}] kicking ${subCmd} (${kickId}) from ${event.threadID}`);
+            chat.removeUserFromGroup(kickId, event.threadID);
+          } else {
+            chat.sendMessage('I don\'t know who that is', toId);
+          }
+        } else {
+          chat.sendMessage('No', toId);
+        }
+      }
+      if (cmd === 'jerbonics') {
+        if (subCmd === 'add') {
+          jerbonics.push(_.lowerCase(event.body.split('/jerbonics add')[1].trim()));
+        } else {
+          chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], toId);
+        }
+      }
       if (cmd === 'fanduel') {
         const baseUrl = utils.getFanDuelBaseUrl(event);
-
         const opts = {
           uri: subCmd === 'info' ? baseUrl : `${baseUrl}/entries?page=1&page_size=10`,
           headers: config.fanDuel.authHeader,
           json: true,
         };
-
         if (subCmd === 'info') {
           rp(opts).then((json) => {
             const contest = json.contests[0];
             const entered = contest.entries.count;
-            const msg = `${contest.name}\u000A--\u000AID: ${contest.id}\u000AEntered: ${entered}/${contest.size.min}`;
+            const startDate = contest.start_date;
+            const msg = `${contest.name}\u000A--\u000AID: ${contest.id}\u000AEntered: ${entered}/${contest.size.min}\u000AStarts In: ${moment().tz('America/New_York').preciseDiff(moment(startDate).tz('America/New_York'))}`;
             chat.sendMessage(msg, toId);
           }).catch(err => console.error(`[${cmd}] failed: ${err}`));
         }
-
         if (subCmd === 'leaderboard' || subCmd === 'score' || subCmd === 'scores') {
           rp(opts).then((json) => {
             const leaderboard = utils.getFanDuelLeaderboard(json);
@@ -67,7 +89,6 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           }).catch(err => console.error(`[${cmd}] failed: ${err}`));
         }
       }
-
       if (cmd === 'countdown') {
         const endDate = config.cooldown.endDate[subCmd];
         const diff = moment().preciseDiff(moment(endDate));

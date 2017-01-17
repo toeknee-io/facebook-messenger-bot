@@ -1,4 +1,4 @@
-config.json
+config.json*
 node_modules/
 .ftpconfig
 .tern-project
@@ -7,3 +7,4 @@ app-state.json
 .ftpignore
 examples-responses/
 npm_delete
+.eslintrc.yml
