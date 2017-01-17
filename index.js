@@ -35,8 +35,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
     utils.checkPresence(chat, event);
     console.log('event: %j', event);
-
-
+    /*
     if (body && _.words(_.lowerCase(body)).indexOf('no') > -1
       && config.facebook.threadIds.indexOf(event.threadID) > -1
       && event.senderID !== config.facebook.userId.tonyBot) {
@@ -46,7 +45,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       && event.senderID !== config.facebook.userId.tonyBot) {
       chat.sendMessage('eff kevin', event.threadID);
     }
-
+    */
     if (cmd === 'sleep' && event.senderID === config.facebook.userId.tony) {
       utils.sleep(_.words(body)[1]);
     }
@@ -102,6 +101,20 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         const endDate = config.cooldown.endDate[subCmd];
         const diff = moment().preciseDiff(moment(endDate));
         chat.sendMessage(`${_.lowerCase(subCmd)} (${moment.formatPref(endDate)})\u000A${diff}`, toId);
+      }
+      if (cmd === 'weather') {
+        const opts = {
+          uri: 'http://api.openweathermap.org/data/2.5/weather',
+          qs: {
+            units: 'imperial',
+            zip: `${subCmd},us`,
+            appid: config.weather.API_KEY,
+          },
+          json: true,
+        };
+        rp(opts).then((json) => {
+          chat.sendMessage(utils.getWeather(json), toId);
+        });
       }
     }
   });
