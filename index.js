@@ -24,6 +24,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   }
 
   utils.writeAppState(chat.getAppState());
+  setInterval(utils.checkPresence, 1000, chat);
 
   chat.setOptions(config.chat.options);
   chat.listen((listenErr, event) => {
@@ -33,7 +34,6 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     const body = event.body;
     const cmd = utils.getCmd(body);
 
-    setInterval(utils.checkPresence, 1000, chat);
     console.log('event: %j', event);
 
     if (event.senderID === config.facebook.userId.jerry) {
@@ -140,10 +140,10 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
     throw loginErr;
   }
   chat.setOptions(config.chat.options);
+  setInterval(utils.checkPresence, 1000, chat);
   chat.listen((listenErr) => {
     if (listenErr) {
       throw listenErr;
     }
-    setInterval(utils.checkPresence, 1000, chat);
   });
 });
