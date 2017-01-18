@@ -38,10 +38,10 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
     if (event.senderID === config.facebook.userId.jerry) {
       chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], event.threadID);
-    } else if (body && _.words(_.lowerCase(body)).indexOf('no') > -1
-      && config.facebook.threadIds.indexOf(event.threadID) > -1
-      && event.senderID !== config.facebook.userId.tonyBot) {
+    } else if (utils.canAutoRespond(event, 'no')) {
       chat.sendMessage('No', event.threadID);
+    } else if (utils.canAutoRespond(event, 'eff bot')) {
+      chat.sendMessage('eff you', event.threadID);
     }/* else if (body && _.intersection(_.words(_.lowerCase(body)),
       ['kevin', 'kvn', 'krvn', 'fenwick']).length
       && config.facebook.threadIds.indexOf(event.threadID) > -1
@@ -56,6 +56,15 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       const toId = event.threadID;
       const subCmd = utils.getSubCmd(cmd, event);
 
+      if (cmd === 'trump') {
+        const opts = {
+          uri: 'https://api.whatdoestrumpthink.com/api/v1/quotes/random',
+          json: true,
+        };
+        rp(opts).then((json) => {
+          chat.sendMessage(json.message, toId);
+        });
+      }
       if (cmd === 'kick') {
         if (event.senderID === config.facebook.userId.tony) {
           const kickId = config.facebook.userId[subCmd];
