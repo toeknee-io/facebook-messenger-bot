@@ -33,7 +33,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     const body = event.body;
     const cmd = utils.getCmd(body);
 
-    utils.checkPresence(chat, event);
+    setInterval(utils.checkPresence, 1000, chat, event);
     console.log('event: %j', event);
 
     if (event.senderID === config.facebook.userId.jerry) {
@@ -144,6 +144,6 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
     if (listenErr) {
       throw listenErr;
     }
-    utils.checkPresence(chat, event);
+    setInterval(utils.checkPresence, 1000, chat, event);
   });
 });
