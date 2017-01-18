@@ -57,17 +57,21 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       const subCmd = utils.getSubCmd(cmd, event);
 
       if (cmd === 'trump') {
-        const opts = {
-          uri: 'https://api.whatdoestrumpthink.com/api/v1/quotes/random',
-          json: true,
-        };
-        if (subCmd) {
-          opts.uri = 'https://api.whatdoestrumpthink.com/api/v1/quotes/personalized';
-          opts.qs = { q: subCmd };
+        if (subCmd && _.lowerCase(subCmd) === 'tony') {
+          chat.sendMessage(`${subCmd} is making bots great again`, toId);
+        } else {
+          const opts = {
+            uri: 'https://api.whatdoestrumpthink.com/api/v1/quotes/random',
+            json: true,
+          };
+          if (subCmd) {
+            opts.uri = 'https://api.whatdoestrumpthink.com/api/v1/quotes/personalized';
+            opts.qs = { q: subCmd };
+          }
+          rp(opts).then((json) => {
+            chat.sendMessage(json.message, toId);
+          });
         }
-        rp(opts).then((json) => {
-          chat.sendMessage(json.message, toId);
-        });
       }
       if (cmd === 'kick') {
         if (event.senderID === config.facebook.userId.tony) {
