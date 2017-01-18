@@ -57,7 +57,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       const subCmd = utils.getSubCmd(cmd, event);
 
       if (cmd === 'trump') {
-        if (subCmd && _.lowerCase(subCmd) === 'tony') {
+        if (subCmd && (_.lowerCase(subCmd) === 'tony' || _.lowerCase(subCmd) === 'trump')) {
           chat.sendMessage(`${subCmd} is making bots great again`, toId);
         } else {
           const opts = {
@@ -68,9 +68,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
             opts.uri = 'https://api.whatdoestrumpthink.com/api/v1/quotes/personalized';
             opts.qs = { q: subCmd };
           }
-          rp(opts).then((json) => {
-            chat.sendMessage(json.message, toId);
-          });
+          rp(opts).then(json => chat.sendMessage(json.message, toId));
         }
       }
       if (cmd === 'kick') {
@@ -131,9 +129,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           },
           json: true,
         };
-        rp(opts).then((json) => {
-          chat.sendMessage(utils.getWeather(json), toId);
-        });
+        rp(opts).then(json => chat.sendMessage(utils.getWeather(json), toId));
       }
     }
   });
