@@ -61,6 +61,10 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           uri: 'https://api.whatdoestrumpthink.com/api/v1/quotes/random',
           json: true,
         };
+        if (subCmd) {
+          opts.uri = 'https://api.whatdoestrumpthink.com/api/v1/quotes/personalized';
+          opts.qs = { q: subCmd };
+        }
         rp(opts).then((json) => {
           chat.sendMessage(json.message, toId);
         });
