@@ -16,7 +16,7 @@ const credentials = !_.isError(appState) && typeof appState === 'object'
   ? { appState }
   : config.chat.credentials.tonyBot;
 
-const jerbonics = [];
+const jerbonics = ['No', 'In you own ass'];
 
 require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
@@ -35,17 +35,19 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
     utils.checkPresence(chat, event);
     console.log('event: %j', event);
-    /*
-    if (body && _.words(_.lowerCase(body)).indexOf('no') > -1
+
+    if (event.senderID === config.facebook.userId.jerry) {
+      chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], event.threadID);
+    } else if (body && _.words(_.lowerCase(body)).indexOf('no') > -1
       && config.facebook.threadIds.indexOf(event.threadID) > -1
       && event.senderID !== config.facebook.userId.tonyBot) {
       chat.sendMessage('No', event.threadID);
-    } else if (body && _.intersection(_.words(_.lowerCase(body)), ['kevin', 'kvn', 'krvn', 'fenwick']).length
+    }/* else if (body && _.intersection(_.words(_.lowerCase(body)),
+      ['kevin', 'kvn', 'krvn', 'fenwick']).length
       && config.facebook.threadIds.indexOf(event.threadID) > -1
       && event.senderID !== config.facebook.userId.tonyBot) {
       chat.sendMessage('eff kevin', event.threadID);
-    }
-    */
+    }*/
     if (cmd === 'sleep' && event.senderID === config.facebook.userId.tony) {
       utils.sleep(_.words(body)[1]);
     }
