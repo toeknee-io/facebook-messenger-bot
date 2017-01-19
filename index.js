@@ -17,14 +17,12 @@ const credentials = !_.isError(appState) && typeof appState === 'object'
   : config.chat.credentials.bot;
 
 const jerbonics = ['No', 'In you own ass'];
-
 require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
 
   utils.writeAppState(chat.getAppState());
-
   chat.setOptions(config.chat.options);
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {
@@ -33,7 +31,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
     console.log('event: %j', event);
 
-    if (utils.isntBot(event) && utils.isntCooldown()) {
+    if (utils.isntBot(event) && utils.isntCooldown(event)) {
       const toId = event.threadID;
       const cmd = utils.getCmd(event);
 
@@ -119,7 +117,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         }
       } else {
         const autoResponses = utils.getAutoResponses(event);
-        console.dir(autoResponses);
+        console.log('possible autoResponses: %j', autoResponses);
         if (autoResponses) {
           chat.sendMessage({ sticker: '1057971357612846' }, event.threadID);
         }
