@@ -1,18 +1,20 @@
 const fs = require('fs');
 const _ = require('lodash');
+const request = require('request');
 const rp = require('request-promise');
 const config = require('./config.json');
 const utils = require('./lib/utils.js');
 const moment = require('./lib/moment-extended.js');
 
-const appState = utils.readAppState();
-const credentials = !_.isError(appState) && typeof appState === 'object'
-  ? { appState }
-  : config.chat.credentials.bot;
+const credentials = utils.getCredentials();
 
 const DIR_ART = `${__dirname}/art`;
 
-const jerbonics = ['No', 'In you own ass', 'Pipe down stinky'];
+const JERBONICS = [];
+const JERPLIES = ['No', 'In you own ass', 'Pipe down stinky'];
+
+let writeLock = false;
+
 require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
@@ -23,16 +25,15 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     if (listenErr) {
       throw listenErr;
     }
-
     console.log('event: %j', event);
-
     if (utils.isntBot(event) && utils.isntCooldown(event)) {
       const toId = event.threadID;
       const cmd = utils.getCmd(event);
+      const attachv = event.attachments;
 
       if (event.senderID === config.facebook.userId.jerry) {
-        let msg = jerbonics[_.random(jerbonics.length - 1)];
-        if (_.isArray(event.attachments) && event.attachments.length) {
+        let msg = JERPLIES[_.random(JERPLIES.length - 1)];
+        if (_.isArray(attachv) && attachv.length) {
           msg = 'Not funny';
         }
         chat.sendMessage(msg, event.threadID);
@@ -40,20 +41,25 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         const subCmd = utils.getSubCmd(cmd, event);
 
         if (cmd === 'art') {
-          if (subCmd === 'add') {
-            console.log('stuff');
-          } else {
-            fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
-              if (readErr) {
-                console.error(readErr);
-              } else {
-                const msg = {
-                  attachment: fs.createReadStream(`${DIR_ART}/${files[_.random(files.length - 1)]}`),
-                };
-                chat.sendMessage(msg, toId);
-              }
-            });
-          }
+          fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
+            if (readErr) {
+              console.error(readErr);
+            } else if (subCmd === 'add' && !writeLock
+              && attachv[0] && attachv[0].previewUrl) {
+              writeLock = true;
+              request(attachv[0].previewUrl)
+                .pipe(fs.createWriteStream(`${DIR_ART}/${files.length}.jpg`, 'utf8'))
+                .on('close', () => {
+                  writeLock = false;
+                  chat.sendMessage(`Saved image @ ${attachv[0].previewUrl} to file ${files.length}`);
+                });
+            } else {
+              const msg = {
+                attachment: fs.createReadStream(`${DIR_ART}/${files[_.random(files.length - 1)]}`),
+              };
+              chat.sendMessage(msg, toId);
+            }
+          });
         }
         if (cmd === 'trump') {
           if (subCmd && (_.lowerCase(subCmd) === 'tony' || _.lowerCase(subCmd) === 'trump')) {
@@ -85,9 +91,9 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         }
         if (cmd === 'jerbonics') {
           if (subCmd === 'add') {
-            jerbonics.push(_.lowerCase(event.body.split('/jerbonics add')[1].trim()));
+            JERBONICS.push(_.lowerCase(event.body.split('/jerbonics add')[1].trim()));
           } else {
-            chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], toId);
+            chat.sendMessage(JERBONICS[_.random(JERBONICS.length - 1)], toId);
           }
         }
         if (cmd === 'fanduel') {
@@ -133,7 +139,12 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       } else {
         const autoResponses = utils.getAutoResponses(event);
         if (autoResponses) {
-          chat.sendMessage({ sticker: '1057971357612846' }, event.threadID);
+          if (autoResponses.words.indexOf('duel') > -1
+          || autoResponses.words.indexOf('fanduel') > -1) {
+            chat.sendMessage('Make the duel great again', event.threadID);
+          } else {
+            chat.sendMessage({ sticker: '1057971357612846' }, event.threadID);
+          }
         }
       }
     }
