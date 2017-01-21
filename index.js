@@ -1,27 +1,22 @@
-/* TO-DO
-  parse cmds less dumbly
-  send msgs less dumbly
-  automate getting fanduel auth header
-  automate getting/setting fanduel contestId
-*/
-
+const fs = require('fs');
 const _ = require('lodash');
 const rp = require('request-promise');
 const config = require('./config.json');
 const utils = require('./lib/utils.js');
-const moment = require('./lib/moment-wrapped.js');
+const moment = require('./lib/moment-extended.js');
 
 const appState = utils.readAppState();
 const credentials = !_.isError(appState) && typeof appState === 'object'
   ? { appState }
   : config.chat.credentials.bot;
 
-const jerbonics = ['No', 'In you own ass'];
+const DIR_ART = `${__dirname}/art`;
+
+const jerbonics = ['No', 'In you own ass', 'Pipe down stinky'];
 require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
-
   utils.writeAppState(chat.getAppState());
   chat.setOptions(config.chat.options);
   const stopListening = chat.listen((listenErr, event) => {
@@ -36,10 +31,30 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       const cmd = utils.getCmd(event);
 
       if (event.senderID === config.facebook.userId.jerry) {
-        chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], event.threadID);
+        let msg = jerbonics[_.random(jerbonics.length - 1)];
+        if (_.isArray(event.attachments) && event.attachments.length) {
+          msg = 'Not funny';
+        }
+        chat.sendMessage(msg, event.threadID);
       } else if (cmd) {
         const subCmd = utils.getSubCmd(cmd, event);
 
+        if (cmd === 'art') {
+          if (subCmd === 'add') {
+            console.log('stuff');
+          } else {
+            fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
+              if (readErr) {
+                console.error(readErr);
+              } else {
+                const msg = {
+                  attachment: fs.createReadStream(`${DIR_ART}/${files[_.random(files.length - 1)]}`),
+                };
+                chat.sendMessage(msg, toId);
+              }
+            });
+          }
+        }
         if (cmd === 'trump') {
           if (subCmd && (_.lowerCase(subCmd) === 'tony' || _.lowerCase(subCmd) === 'trump')) {
             chat.sendMessage(`${subCmd} is making bots great again`, toId);
@@ -117,7 +132,6 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         }
       } else {
         const autoResponses = utils.getAutoResponses(event);
-        console.log('possible autoResponses: %j', autoResponses);
         if (autoResponses) {
           chat.sendMessage({ sticker: '1057971357612846' }, event.threadID);
         }
