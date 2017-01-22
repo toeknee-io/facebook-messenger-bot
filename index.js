@@ -6,16 +6,19 @@ const config = require('./config.json');
 const utils = require('./lib/utils.js');
 const moment = require('./lib/moment-extended.js');
 
-const credentials = utils.getCredentials();
+const ENV = process.env.NODE_ENV;
 
+const CREDENTIALS = utils.getCredentials();
+
+const addArtPending = [];
 const DIR_ART = `${__dirname}/art`;
 
-const JERBONICS = [];
+const jerbonics = [];
 const JERPLIES = ['No', 'In you own ass', 'Pipe down stinky'];
 
 let writeLock = false;
 
-require('facebook-chat-api')(credentials, (loginErr, chat) => {
+require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
@@ -25,9 +28,9 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     if (listenErr) {
       throw listenErr;
     }
-    console.log('event: %j', event);
+    console.log(event);
     if (utils.isntBot(event) && utils.isntCooldown(event)) {
-      const toId = event.threadID;
+      const toId = ENV !== 'development' ? event.threadID : config.facebook.userId.tony;
       const cmd = utils.getCmd(event);
       const attachv = event.attachments;
 
@@ -37,29 +40,36 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           msg = 'Not funny';
         }
         chat.sendMessage(msg, event.threadID);
+      } else if (addArtPending.indexOf(event.senderID) > -1
+      && !writeLock && attachv[0] && attachv[0].previewUrl) {
+        writeLock = true;
+        fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
+          request(attachv[0].previewUrl)
+            .pipe(fs.createWriteStream(`${DIR_ART}/${files.length}.jpg`, 'utf8'))
+            .on('close', () => {
+              writeLock = false;
+              addArtPending.splice(addArtPending.indexOf(event.senderID), 1);
+              chat.sendMessage(`Saved image @ ${attachv[0].previewUrl} to file ${files.length}`);
+            });
+        });
       } else if (cmd) {
         const subCmd = utils.getSubCmd(cmd, event);
 
         if (cmd === 'art') {
-          fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
-            if (readErr) {
-              console.error(readErr);
-            } else if (subCmd === 'add' && !writeLock
-              && attachv[0] && attachv[0].previewUrl) {
-              writeLock = true;
-              request(attachv[0].previewUrl)
-                .pipe(fs.createWriteStream(`${DIR_ART}/${files.length}.jpg`, 'utf8'))
-                .on('close', () => {
-                  writeLock = false;
-                  chat.sendMessage(`Saved image @ ${attachv[0].previewUrl} to file ${files.length}`);
-                });
-            } else {
-              const msg = {
-                attachment: fs.createReadStream(`${DIR_ART}/${files[_.random(files.length - 1)]}`),
-              };
-              chat.sendMessage(msg, toId);
-            }
-          });
+          if (subCmd === 'add') {
+            addArtPending.push(event.senderID);
+          } else {
+            fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
+              if (readErr) {
+                console.error(readErr);
+              } else {
+                const msg = {
+                  attachment: fs.createReadStream(`${DIR_ART}/${files[_.random(files.length - 1)]}`),
+                };
+                chat.sendMessage(msg, toId);
+              }
+            });
+          }
         }
         if (cmd === 'trump') {
           if (subCmd && (_.lowerCase(subCmd) === 'tony' || _.lowerCase(subCmd) === 'trump')) {
@@ -91,9 +101,9 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         }
         if (cmd === 'jerbonics') {
           if (subCmd === 'add') {
-            JERBONICS.push(_.lowerCase(event.body.split('/jerbonics add')[1].trim()));
+            jerbonics.push(_.lowerCase(event.body.split('/jerbonics add')[1].trim()));
           } else {
-            chat.sendMessage(JERBONICS[_.random(JERBONICS.length - 1)], toId);
+            chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], toId);
           }
         }
         if (cmd === 'fanduel') {
@@ -153,7 +163,6 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   process.on('exit', (code) => {
     console.log(`beginning shutdown: exit called with code [${code}]`);
     stopListening();
-    chat.logout();
     console.log('bot logged out.');
   });
 });
