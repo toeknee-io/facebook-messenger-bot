@@ -10,3 +10,4 @@ npm_delete
 .eslintrc.yml
 test.js
 .DS_Store
+art/

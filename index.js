@@ -37,7 +37,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       if (event.senderID === config.facebook.userId.jerry) {
         let msg = JERPLIES[_.random(JERPLIES.length - 1)];
         if (_.isArray(attachv) && attachv.length) {
-          msg = 'Not funny';
+          msg = 'No';
         }
         chat.sendMessage(msg, event.threadID);
       } else if (addArtPending.indexOf(event.senderID) > -1
