@@ -49,7 +49,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             .on('close', () => {
               writeLock = false;
               addArtPending.splice(addArtPending.indexOf(event.senderID), 1);
-              chat.sendMessage(`Saved image @ ${attachv[0].previewUrl} to file ${files.length}`, toId);
+              chat.sendMessage('Art has been added', toId);
             });
         });
       } else if (cmd) {
