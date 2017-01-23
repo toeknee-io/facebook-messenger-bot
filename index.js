@@ -153,7 +153,9 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         if (autoResponses) {
           if (autoResponses.words.indexOf('duel') > -1
           || autoResponses.words.indexOf('fanduel') > -1) {
-            chat.sendMessage('Make the duel great again', event.threadID);
+            chat.sendMessage('Make the duel great again', toId);
+          } else if (autoResponses.words.indexOf(':O') > -1) {
+            chat.sendMessage(':O', toId);
           } else {
             chat.sendMessage({ sticker: '1057971357612846' }, event.threadID);
           }
