@@ -14,7 +14,7 @@ const addArtPending = [];
 const DIR_ART = `${__dirname}/art`;
 
 const jerbonics = [];
-const JERPLIES = ['No', 'In you own ass', 'Pipe down stinky'];
+// const JERPLIES = ['No', 'In you own ass', 'Pipe down stinky'];
 
 let writeLock = false;
 
@@ -33,14 +33,16 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       const toId = ENV !== 'development' ? event.threadID : config.facebook.userId.tony;
       const cmd = utils.getCmd(event);
       const attachv = event.attachments;
-
+/*
       if (event.senderID === config.facebook.userId.jerry) {
         let msg = JERPLIES[_.random(JERPLIES.length - 1)];
         if (_.isArray(attachv) && attachv.length) {
           msg = 'No';
         }
         chat.sendMessage(msg, event.threadID);
-      } else if (addArtPending.indexOf(event.senderID) > -1
+      } else
+*/
+      if (addArtPending.indexOf(event.senderID) > -1
       && !writeLock && attachv[0] && attachv[0].previewUrl) {
         writeLock = true;
         fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
