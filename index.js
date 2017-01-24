@@ -101,7 +101,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         }
         if (cmd === 'jerbonics') {
           if (subCmd === 'add') {
-            jerbonics.push(_.lowerCase(event.body.split('/jerbonics add')[1].trim()));
+            jerbonics.push(event.body.split('/jerbonics add')[1].trim());
           } else {
             chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], toId);
           }
@@ -152,8 +152,8 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           if (autoResponses.words.indexOf('duel') > -1
           || autoResponses.words.indexOf('fanduel') > -1) {
             chat.sendMessage('Make the duel great again', toId);
-          } else if (autoResponses.words.indexOf(':O') > -1) {
-            chat.sendMessage(':O', toId);
+          } else if (autoResponses.phrases.indexOf('i am fenwick') > -1) {
+            chat.sendMessage('hey fenwick, have you seen my shield?', toId);
           } else {
             chat.sendMessage({ sticker: '1057971357612846' }, event.threadID);
           }
