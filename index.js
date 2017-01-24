@@ -139,7 +139,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             uri: 'http://api.openweathermap.org/data/2.5/weather',
             qs: {
               units: 'imperial',
-              zip: `${subCmd},us`,
+              zip: `${subCmd || '97818'},us`,
               appid: config.weather.API_KEY,
             },
             json: true,
