@@ -146,8 +146,9 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           };
           rp(opts).then(json => chat.sendMessage(utils.getWeather(json), toId));
         }
-      } else if (cmd === 'shrug') {
-        chat.sendMessage('¯\_(ツ)_/¯', toId);
+        if (cmd === 'shrug') {
+          chat.sendMessage('¯\_(ツ)_/¯', toId);
+        }
       } else {
         const autoResponses = utils.getAutoResponses(event);
         if (autoResponses) {
