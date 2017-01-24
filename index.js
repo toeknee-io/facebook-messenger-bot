@@ -152,6 +152,8 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           if (autoResponses.words.indexOf('duel') > -1
           || autoResponses.words.indexOf('fanduel') > -1) {
             chat.sendMessage('Make the duel great again', toId);
+          } else if (autoResponses.words.indexOf('dat') > -1) {
+            chat.sendMessage('dat dat', toId);
           } else if (autoResponses.phrases.indexOf('i am fenwick') > -1) {
             chat.sendMessage('hey fenwick, have you seen my shield?', toId);
           } else {
