@@ -146,6 +146,8 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           };
           rp(opts).then(json => chat.sendMessage(utils.getWeather(json), toId));
         }
+      } else if (cmd === 'shrug') {
+        chat.sendMessage('¯\_(ツ)_/¯', toId);
       } else {
         const autoResponses = utils.getAutoResponses(event);
         if (autoResponses) {
@@ -157,7 +159,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           } else if (autoResponses.phrases.indexOf('i am fenwick') > -1) {
             chat.sendMessage('hey fenwick, have you seen my shield?', toId);
           } else {
-            chat.sendMessage({ sticker: '1057971357612846' }, event.threadID);
+            chat.sendMessage({ sticker: '1057971357612846' }, toId);
           }
         }
       }
