@@ -39,7 +39,10 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         if (_.isArray(attachv) && attachv.length) {
           msg = 'No';
         }
-        chat.sendMessage(msg, event.threadID);
+        chat.sendMessage(msg, toId);
+      } else if (_.words(_.lowerCase(event.body)).indexOf('kevin') > -1
+      || _.words(_.lowerCase(event.body)).indexOf('kvn') > -1) {
+        chat.sendMessage('Eff quitter kevin', toId);
       } else if (addArtPending.indexOf(event.senderID) > -1
       && !writeLock && attachv[0] && attachv[0].previewUrl) {
         writeLock = true;
@@ -152,10 +155,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       } else {
         const autoResponses = utils.getAutoResponses(event);
         if (autoResponses) {
-          if (autoResponses.words.indexOf('duel') > -1
-          || autoResponses.words.indexOf('fanduel') > -1) {
-            chat.sendMessage('Make the duel great again', toId);
-          } else if (autoResponses.words.indexOf('dat') > -1) {
+          if (autoResponses.words.indexOf('dat') > -1) {
             chat.sendMessage('dat dat', toId);
           } else if (autoResponses.phrases.indexOf('i am fenwick') > -1) {
             chat.sendMessage('hey fenwick, have you seen my shield?', toId);
