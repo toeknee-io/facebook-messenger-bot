@@ -65,8 +65,6 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         ? utils.getRandomFromArray(REPLY_BAD_CMD)
         : utils.getRandomFromArray(REPLY_JERRY);
       chat.sendMessage(msg, toId);
-    } else if (utils.hasWords(event, 'kevin', 'kvn', 'krvn')) {
-      chat.sendMessage('Eff quitter kevin', toId);
     } else if (utils.inArtQueue(addArtPending, event)
     && utils.canWrite(writeLock, attachv)) {
       writeLock = true;
@@ -236,6 +234,8 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
         }
       }
+    } else if (utils.hasWords(event, 'kevin', 'kvn', 'krvn')) {
+      chat.sendMessage('Eff quitter kevin', toId);
     } else {
       const autoResponses = utils.getAutoResponses(event);
       utils.debug(autoResponses);
