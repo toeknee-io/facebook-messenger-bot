@@ -222,15 +222,19 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         attachment.once('readable', () => chat.sendMessage({ attachment }, toId));
       }
       if (cmd === 'yoda') {
-        const opts = {
-          uri: 'https://yoda.p.mashape.com/yoda',
-          qs: { sentence: subCmd },
-          headers: {
-            'X-Mashape-Key': 'EWMSPyqvN7msh0K6qhfZkUUT8OwNp1mzujujsnLI5gVc6qnGpi',
-            accept: 'text/plain',
-          },
-        };
-        rp(opts).then(res => chat.sendMessage(res, toId));
+        if (subCmd) {
+          const opts = {
+            uri: 'https://yoda.p.mashape.com/yoda',
+            qs: { sentence: subCmd },
+            headers: {
+              'X-Mashape-Key': 'EWMSPyqvN7msh0K6qhfZkUUT8OwNp1mzujujsnLI5gVc6qnGpi',
+              accept: 'text/plain',
+            },
+          };
+          rp(opts).then(res => chat.sendMessage(res, toId));
+        } else {
+          chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
+        }
       }
     } else {
       const autoResponses = utils.getAutoResponses(event);
