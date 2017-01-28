@@ -6,8 +6,9 @@ event-types.json
 app-state.json
 .ftpignore
 examples-responses/
-npm_delete
+npm_*
 .eslintrc.yml
 test.js
 .DS_Store
 art/
+gif/

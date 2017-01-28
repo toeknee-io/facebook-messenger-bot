@@ -1,22 +1,31 @@
 const fs = require('fs');
 const _ = require('lodash');
+const path = require('path');
+const mmm = require('mmmagic');
 const request = require('request');
 const rp = require('request-promise');
 const config = require('./config.json');
 const utils = require('./lib/utils.js');
 const moment = require('./lib/moment-extended.js');
 
+
+const magic = new mmm.Magic(mmm.MAGIC_MIME);
+
 const ENV = process.env.NODE_ENV;
 
 const CREDENTIALS = utils.getCredentials();
 
+const JERBONICS = [];
 const addArtPending = [];
-const DIR_ART = `${__dirname}/art`;
 
-const jerbonics = [];
-const JERPLIES = ['No', 'In you own ass', 'You have no crystal ball to predict history', 'Eff that'];
+const DIR_ART = `${__dirname}/art`;
+const DIR_GIF = `${__dirname}/gif`;
+
+const REPLY_JERRY = ['No', 'In you own ass', 'Eff that', 'You have no crystal ball to predict history'];
+const REPLY_BAD_CMD = ['No', 'In you own ass', 'Eff that', { sticker: '1057971357612846' }];
 
 let writeLock = false;
+let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
 require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
   if (loginErr) {
@@ -28,16 +37,21 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
     if (listenErr) {
       throw listenErr;
     }
-    console.log(event);
+    const senderName = _.findKey(config.facebook.userId,
+      id => event.senderID === id || event.userID === id || event.reader === id);
+
+    utils.debug(event);
+    console.log(senderName !== 'bot' ? `${senderName}: ${event.body ? event.body : event.type}` : '');
+
     if (utils.isntBot(event) && utils.isntCooldown(event)) {
       const toId = ENV !== 'development' ? event.threadID : config.facebook.userId.tony;
       const cmd = utils.getCmd(event);
       const attachv = event.attachments;
 
       if (event.senderID === config.facebook.userId.jerry) {
-        let msg = JERPLIES[_.random(JERPLIES.length - 1)];
+        let msg = utils.getRandomFromArray(REPLY_JERRY);
         if (_.isArray(attachv) && attachv.length) {
-          msg = 'No';
+          msg = utils.getRandomFromArray(REPLY_BAD_CMD);
         }
         chat.sendMessage(msg, toId);
       } else if (_.words(_.lowerCase(event.body)).indexOf('kevin') > -1
@@ -53,25 +67,54 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
               writeLock = false;
               addArtPending.splice(addArtPending.indexOf(event.senderID), 1);
               chat.sendMessage('Art has been added', toId);
+              artFiles = fs.readdirSync(DIR_ART, 'utf8');
             });
         });
       } else if (cmd) {
         const subCmd = utils.getSubCmd(cmd, event);
 
         if (cmd === 'art') {
-          if (subCmd === 'add') {
-            addArtPending.push(event.senderID);
+          if (subCmd) {
+            if (subCmd === 'add') {
+              addArtPending.push(event.senderID);
+            }
+            if (subCmd === 'gallery') {
+              const attachment = [];
+              artFiles.forEach((file) => {
+                const filePath = `${DIR_ART}/${file}`;
+                magic.detectFile(filePath, (err, result) => {
+                  if (err) {
+                    console.error(err);
+                  } else {
+                    if (result.match(/jpeg|png/)) {
+                      attachment.push(fs.createReadStream(filePath));
+                    } else {
+                      console.error(`not valid art (${result}): ${filePath}`);
+                      artFiles.splice(artFiles.indexOf(file), 1);
+                    }
+                    if (artFiles.length === attachment.length) {
+                      chat.sendMessage({ attachment }, toId);
+                    }
+                  }
+                });
+              });
+            } else if (subCmd === 'refresh') {
+              let msg = 'Art has been refreshed:\u000A';
+              artFiles = _.sortBy(fs.readdirSync(DIR_ART, 'utf8'), file => _.toNumber(file.replace('.jpg', '')));
+              artFiles.forEach(artFile => (msg += `${artFile}\u000A`));
+              chat.sendMessage(msg, toId);
+            } else {
+              const fileName = path.extname(subCmd) === '.jpg' ? subCmd : `${subCmd}.jpg`;
+              const msg = artFiles.indexOf(fileName) > -1
+                ? { attachment: fs.createReadStream(`${DIR_ART}/${fileName}`) }
+                : utils.getRandomFromArray(REPLY_BAD_CMD);
+              chat.sendMessage(msg, toId);
+            }
           } else {
-            fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
-              if (readErr) {
-                console.error(readErr);
-              } else {
-                const msg = {
-                  attachment: fs.createReadStream(`${DIR_ART}/${files[_.random(files.length - 1)]}`),
-                };
-                chat.sendMessage(msg, toId);
-              }
-            });
+            const artFile = utils.getRandomFromArray(artFiles);
+            chat.sendMessage({
+              body: artFile, attachment: fs.createReadStream(`${DIR_ART}/${artFile}`),
+            }, toId);
           }
         }
         if (cmd === 'trump') {
@@ -99,14 +142,14 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
               chat.sendMessage('I don\'t know who that is', toId);
             }
           } else {
-            chat.sendMessage('No', toId);
+            chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
           }
         }
         if (cmd === 'jerbonics') {
           if (subCmd === 'add') {
-            jerbonics.push(event.body.split('/jerbonics add')[1].trim());
+            JERBONICS.push(event.body.split('/jerbonics add')[1].trim());
           } else {
-            chat.sendMessage(jerbonics[_.random(jerbonics.length - 1)], toId);
+            chat.sendMessage(JERBONICS[_.random(JERBONICS.length - 1)], toId);
           }
         }
         if (cmd === 'fanduel') {
@@ -152,16 +195,16 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         if (cmd === 'shrug') {
           chat.sendMessage('¯\u005C_(ツ)_/¯', toId);
         }
+        if (cmd === 'gif') {
+          const attachment = fs.createReadStream(`${DIR_GIF}/${subCmd}.gif`);
+          attachment.once('error', () => chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId));
+          attachment.once('readable', () => chat.sendMessage({ attachment }, toId));
+        }
       } else {
         const autoResponses = utils.getAutoResponses(event);
-        if (autoResponses) {
-          if (autoResponses.words.indexOf('dat') > -1) {
-            chat.sendMessage('dat dat', toId);
-          } else if (autoResponses.phrases.indexOf('i am fenwick') > -1) {
-            chat.sendMessage('hey fenwick, have you seen my shield?', toId);
-          } else {
-            chat.sendMessage({ sticker: '1057971357612846' }, toId);
-          }
+        utils.debug(autoResponses);
+        if (!_.isEmpty(autoResponses)) {
+          chat.sendMessage(utils.getRandomFromArray(autoResponses), toId);
         }
       }
     }

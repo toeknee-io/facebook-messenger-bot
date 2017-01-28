@@ -5,6 +5,7 @@ module.exports = {
       script: 'index.js',
       exec_mode: 'fork',
       instances: 1,
+      env: {},
       env_development: {
         NODE_ENV: 'development',
       },
