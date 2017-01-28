@@ -22,9 +22,9 @@ const DIR_GIF = `${__dirname}/gif`;
 
 const REPLY_JERRY = ['No', 'In you own ass', 'Eff that', 'You have no crystal ball to predict history'];
 const REPLY_BAD_CMD = [
-  'No', 'In you own ass', 'Eff that',
+  'No', 'In you own ass', 'Eff that', '¯\u005C_(ツ)_/¯',
   { sticker: '1057971357612846' },
-  { attachment: fs.createWriteStream(`${DIR_ART}/1.jpg`, 'utf8') },
+  { attachment: fs.createReadStream(`${DIR_ART}/1.jpg`, 'utf8') },
 ];
 
 let writeLock = false;
@@ -233,6 +233,9 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         } else {
           chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
         }
+      }
+      if (cmd === 'joke') {
+        rp('http://api.yomomma.info').then(res => chat.sendMessage(JSON.parse(res).joke, toId));
       }
     } else if (utils.hasWords(event, 'kevin', 'kvn', 'krvn')) {
       chat.sendMessage('Eff quitter kevin', toId);
