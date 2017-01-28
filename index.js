@@ -8,7 +8,6 @@ const config = require('./config.json');
 const utils = require('./lib/utils.js');
 const moment = require('./lib/moment-extended.js');
 
-
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
@@ -92,16 +91,16 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
                       console.error(`not valid art (${result}): ${filePath}`);
                       artFiles.splice(artFiles.indexOf(file), 1);
                     }
-                    if (artFiles.length === attachment.length) {
+                    if (attachment.length === artFiles.length) {
                       chat.sendMessage({ attachment }, toId);
                     }
                   }
                 });
               });
             } else if (subCmd === 'refresh') {
-              let msg = 'Art has been refreshed:\u000A';
+              let msg = 'Art has been refreshed:\u000A\u000A';
               artFiles = _.sortBy(fs.readdirSync(DIR_ART, 'utf8'), file => _.toNumber(file.replace('.jpg', '')));
-              artFiles.forEach(artFile => (msg += `${artFile}\u000A`));
+              artFiles.forEach(artFile => (msg += `${artFile.replace('.jpg', '')}\u000A`));
               chat.sendMessage(msg, toId);
             } else {
               const fileName = path.extname(subCmd) === '.jpg' ? subCmd : `${subCmd}.jpg`;
