@@ -12,7 +12,7 @@
     "start": "pm2 start $npm_package_config_pm2Config --env production",
     "stop": "pm2 stop $npm_package_config_pm2Config",
     "restart": "pm2 restart $npm_package_config_pm2Config && pm2 logs",
-    "redeploy": "npm install && npm run-script restart",
+    "redeploy": "git pull && npm install && npm run-script restart",
     "delete": "pm2 delete $npm_package_config_pm2Config"
   },
   "author": "toeknee <toeknee@toeknee.io>",
