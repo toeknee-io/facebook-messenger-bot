@@ -76,7 +76,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           .on('close', () => {
             writeLock = false;
             addArtPending.splice(addArtPending.indexOf(event.senderID), 1);
-            chat.sendMessage('Art has been added', toId);
+            chat.sendMessage(`Art has been added at index ${files.length}`, toId);
             artFiles = fs.readdirSync(DIR_ART, 'utf8');
           });
       });
@@ -114,18 +114,22 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             });
           } else if (subCmd === 'refresh') {
             let msg = 'Art has been refreshed:\u000A\u000A';
+
             artFiles = _.sortBy(fs.readdirSync(DIR_ART, 'utf8'), file => _.toNumber(file.replace('.jpg', '')));
             artFiles.forEach(artFile => (msg += `${artFile.replace('.jpg', '')}\u000A`));
+
             chat.sendMessage(msg, toId);
           } else {
             const fileName = path.extname(subCmd) === '.jpg' ? subCmd : `${subCmd}.jpg`;
             const msg = artFiles.indexOf(fileName) > -1
               ? { attachment: fs.createReadStream(`${DIR_ART}/${fileName}`) }
               : utils.getRandomFromArray(REPLY_BAD_CMD);
+
             chat.sendMessage(msg, toId);
           }
         } else {
           const artFile = utils.getRandomFromArray(artFiles);
+
           chat.sendMessage({
             body: artFile.replace('.jpg', ''),
             attachment: fs.createReadStream(`${DIR_ART}/${artFile}`),
@@ -148,14 +152,10 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         }
       }
       if (cmd === 'kick') {
-        if (event.senderID === config.facebook.userId.tony) {
-          const kickId = config.facebook.userId[subCmd];
-          if (kickId) {
-            console.log(`[${cmd}] kicking ${subCmd} (${kickId}) from ${event.threadID}`);
-            chat.removeUserFromGroup(kickId, event.threadID);
-          } else {
-            chat.sendMessage('I don\'t know who that is', toId);
-          }
+        const kickId = config.facebook.userId[subCmd];
+        if (senderName === 'tony' && kickId) {
+          console.log(`kick: ${subCmd} (${kickId}) from ${event.threadID}`);
+          chat.removeUserFromGroup(kickId, event.threadID);
         } else {
           chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
         }
@@ -164,7 +164,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         if (subCmd === 'add') {
           JERBONICS.push(event.body.split('/jerbonics add')[1].trim());
         } else {
-          chat.sendMessage(JERBONICS[_.random(JERBONICS.length - 1)], toId);
+          chat.sendMessage(utils.getRandomFromArray(JERBONICS), toId);
         }
       }
       if (cmd === 'fanduel') {
@@ -174,6 +174,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           headers: config.fanDuel.authHeader,
           json: true,
         };
+
         if (subCmd === 'info') {
           rp(opts).then((json) => {
             const contest = json.contests[0];
@@ -183,11 +184,10 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             chat.sendMessage(msg, toId);
           }).catch(err => console.error(`[${cmd}] failed: ${err}`));
         }
-        if (subCmd === 'leaderboard' || subCmd === 'score' || subCmd === 'scores') {
-          rp(opts).then((json) => {
-            const leaderboard = utils.getFanDuelLeaderboard(json);
-            chat.sendMessage(leaderboard, toId);
-          }).catch(err => console.error(`[${cmd}] failed: ${err}`));
+        if (utils.hasWords(subCmd, 'leaderboard', 'score', 'scores')) {
+          rp(opts).then(json =>
+            chat.sendMessage(utils.getFanDuelLeaderboard(json), toId)
+          ).catch(err => console.error(`[${cmd}] failed: ${err}`));
         }
       }
       if (cmd === 'countdown') {
