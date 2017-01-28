@@ -237,7 +237,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       if (cmd === 'joke') {
         rp('http://api.yomomma.info').then(res => chat.sendMessage(JSON.parse(res).joke, toId));
       }
-      if (cmd === '8' && event.body.match(/\?/)) {
+      if (cmd === '8' && event.body.match(/\w\?/)) {
         rp('https://api.rtainc.co/twitch/8ball?format=The+Magic+8-Ball+says...+%5B0%5D')
         .then(res => chat.sendMessage(res, toId));
       }
