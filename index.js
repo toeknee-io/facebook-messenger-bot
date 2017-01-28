@@ -119,6 +119,12 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             artFiles.forEach(artFile => (msg += `${artFile.replace('.jpg', '')}\u000A`));
 
             chat.sendMessage(msg, toId);
+          } else if (subCmd === 'list') {
+            artFiles.forEach(file =>
+              chat.sendMessage(
+                { body: file.replace('.jpg', ''), attachment: fs.createReadStream(`${DIR_ART}/${file}`) },
+                event.senderID
+              ));
           } else {
             const fileName = path.extname(subCmd) === '.jpg' ? subCmd : `${subCmd}.jpg`;
             const msg = artFiles.indexOf(fileName) > -1
