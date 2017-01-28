@@ -21,7 +21,11 @@ const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
 
 const REPLY_JERRY = ['No', 'In you own ass', 'Eff that', 'You have no crystal ball to predict history'];
-const REPLY_BAD_CMD = ['No', 'In you own ass', 'Eff that', { sticker: '1057971357612846' }];
+const REPLY_BAD_CMD = [
+  'No', 'In you own ass', 'Eff that',
+  { sticker: '1057971357612846' },
+  { attachment: fs.createWriteStream(`${DIR_ART}/1.jpg`, 'utf8') },
+];
 
 let writeLock = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
@@ -46,23 +50,25 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
     const senderName = _.findKey(config.facebook.userId,
       id => event.senderID === id || event.userID === id || event.reader === id);
 
-    console.log(senderName !== 'bot' ? `${senderName}: ${event.body ? event.body : event.type}` : '');
+    console.log(senderName !== 'bot'
+      ? `[${event.threadID}] ${senderName}: ${event.body ? event.body : event.type}`
+      : '');
 
-    const toId = ENV !== 'development' ? event.threadID : config.facebook.userId.tony;
     const cmd = utils.getCmd(event);
     const attachv = event.attachments;
+    const toId = ENV !== 'development'
+      ? event.threadID
+      : config.facebook.userId.tony;
 
-    if (event.senderID === config.facebook.userId.jerry) {
-      let msg = utils.getRandomFromArray(REPLY_JERRY);
-      if (_.isArray(attachv) && attachv.length) {
-        msg = utils.getRandomFromArray(REPLY_BAD_CMD);
-      }
+    if (senderName === 'jerry') {
+      const msg = _.isArray(attachv) && attachv.length
+        ? utils.getRandomFromArray(REPLY_BAD_CMD)
+        : utils.getRandomFromArray(REPLY_JERRY);
       chat.sendMessage(msg, toId);
-    } else if (_.words(_.lowerCase(event.body)).indexOf('kevin') > -1
-    || _.words(_.lowerCase(event.body)).indexOf('kvn') > -1) {
+    } else if (utils.hasWords(event, 'kevin', 'kvn', 'krvn')) {
       chat.sendMessage('Eff quitter kevin', toId);
-    } else if (addArtPending.indexOf(event.senderID) > -1
-    && !writeLock && attachv[0] && attachv[0].previewUrl) {
+    } else if (utils.inArtQueue(addArtPending, event)
+    && utils.canWrite(writeLock, attachv)) {
       writeLock = true;
       fs.readdir(DIR_ART, 'utf8', (readErr, files) => {
         request(attachv[0].previewUrl)
