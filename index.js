@@ -239,8 +239,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       }
     } else if (utils.hasWords(event, 'kevin', 'kvn', 'krvn')) {
       chat.sendMessage('Eff quitter kevin', toId);
-    } else if (utils.hasWords(event, 'LGH')) {
-      utils.debug('lgh');
+    } else if (utils.hasWords(event, 'LGH', '🔥')) {
       chat.sendMessage([{ body: '🔥' },
         { attachment: fs.createReadStream(`${DIR_GIF}/tank.gif`) }][_.random(1)],
         toId
