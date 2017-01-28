@@ -88,8 +88,13 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
                     if (result.match(/jpeg|png/)) {
                       attachment.push(fs.createReadStream(filePath));
                     } else {
-                      console.error(`not valid art (${result}): ${filePath}`);
+                      console.error(`invalid art type (${result}): ${filePath}`);
                       artFiles.splice(artFiles.indexOf(file), 1);
+                      fs.unlink(filePath, (unlinkErr) => {
+                        if (unlinkErr) {
+                          console.error(`failed to deleted invalid art file: ${filePath}`);
+                        }
+                      });
                     }
                     if (attachment.length === artFiles.length) {
                       chat.sendMessage({ attachment }, toId);
@@ -112,7 +117,8 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           } else {
             const artFile = utils.getRandomFromArray(artFiles);
             chat.sendMessage({
-              body: artFile, attachment: fs.createReadStream(`${DIR_ART}/${artFile}`),
+              body: artFile.replace('.jpg', ''),
+              attachment: fs.createReadStream(`${DIR_ART}/${artFile}`),
             }, toId);
           }
         }
