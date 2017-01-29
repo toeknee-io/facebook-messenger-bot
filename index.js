@@ -3,9 +3,11 @@ const _ = require('lodash');
 const path = require('path');
 const mmm = require('mmmagic');
 const request = require('request');
+const emoji = require('node-emoji');
 const rp = require('request-promise');
 const config = require('./config.json');
 const utils = require('./lib/utils.js');
+const emojiRegex = require('emoji-regex');
 const moment = require('./lib/moment-extended.js');
 
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
@@ -65,6 +67,9 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         ? utils.getRandomFromArray(REPLY_BAD_CMD)
         : utils.getRandomFromArray(REPLY_JERRY);
       chat.sendMessage(msg, toId);
+    } else if (event.body && event.body.length <= 2
+      && emojiRegex().test(event.body)) {
+      chat.sendMessage(emoji.random().emoji, toId);
     } else if (utils.inArtQueue(addArtPending, event)
     && utils.canWrite(writeLock, attachv)) {
       writeLock = true;
