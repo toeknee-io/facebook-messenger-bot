@@ -16,13 +16,12 @@ const ENV = process.env.NODE_ENV;
 
 const CREDENTIALS = utils.getCredentials();
 
-const JERBONICS = [];
+
 const addArtPending = [];
 
 const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
 
-const REPLY_JERRY = ['No', 'In you own ass', 'Eff that', 'You have no crystal ball to predict history'];
 const REPLY_BAD_CMD = [
   'No', 'In you own ass', 'Eff that', '¯\u005C_(ツ)_/¯',
   { sticker: '1057971357612846' },
@@ -36,25 +35,34 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
+
   utils.writeAppState(chat.getAppState());
   chat.setOptions(config.chat.options);
+
+  function sendMsg(msg, toId) {
+    let recipient = toId;
+    if (ENV === 'development') {
+      /* eslint-disable no-param-reassign */
+      recipient = config.facebook.userId.tony;
+      /* eslint-enable no-param-reassign */
+      chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
+    }
+    chat.sendMessage(msg, recipient);
+  }
+
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {
       throw listenErr;
     }
 
-    utils.debug(event);
-
     if (utils.isBot(event) || utils.isCooldown(event)) {
+      utils.debug(`skipping event: ${JSON.stringify(event)}
+        isBot ${utils.isBot(event)} isCooldown ${utils.isCooldown(event)}`);
       return;
     }
 
-    const senderName = _.findKey(config.facebook.userId,
-      id => event.senderID === id || event.userID === id || event.reader === id);
-
-    console.log(senderName !== 'bot'
-      ? `[${event.threadID}] ${senderName}: ${event.body ? event.body : event.type}`
-      : '');
+    utils.assignEventProps(event);
+    utils.logEvent(event);
 
     const cmd = utils.getCmd(event);
     const attachv = event.attachments;
@@ -62,14 +70,15 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       ? event.threadID
       : config.facebook.userId.tony;
 
-    if (senderName === 'jerry') {
+    if (event.senderName === 'jerry') {
       const msg = _.isArray(attachv) && attachv.length
         ? utils.getRandomFromArray(REPLY_BAD_CMD)
-        : utils.getRandomFromArray(REPLY_JERRY);
+        : utils.getJerryReply();
       chat.sendMessage(msg, toId);
     } else if (event.body && event.body.length <= 2
-      && emojiRegex().test(event.body)) {
-      chat.sendMessage(emoji.random().emoji, toId);
+    && emojiRegex().test(event.body)) {
+      const msg = event.body === '🔥' ? '🔥' : emoji.random();
+      chat.sendMessage(msg, toId);
     } else if (utils.inArtQueue(addArtPending, event)
     && utils.canWrite(writeLock, attachv)) {
       writeLock = true;
@@ -125,7 +134,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
           } else if (subCmd === 'list') {
             artFiles.forEach(file =>
               chat.sendMessage(
-                { body: file.replace('.jpg', ''), attachment: fs.createReadStream(`${DIR_ART}/${file}`) },
+                { body: `/art ${file.replace('.jpg', '')}`, attachment: fs.createReadStream(`${DIR_ART}/${file}`) },
                 event.senderID
               ));
           } else {
@@ -162,7 +171,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       }
       if (cmd === 'kick') {
         const kickId = config.facebook.userId[subCmd];
-        if (senderName === 'tony' && kickId) {
+        if (event.senderName === 'tony' && kickId) {
           console.log(`kick: ${subCmd} (${kickId}) from ${event.threadID}`);
           chat.removeUserFromGroup(kickId, event.threadID);
         } else {
@@ -171,9 +180,9 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       }
       if (cmd === 'jerbonics') {
         if (subCmd === 'add') {
-          JERBONICS.push(event.body.split('/jerbonics add')[1].trim());
+          utils.saveJerrism(event.body.split('/jerbonics add')[1].trim());
         } else {
-          chat.sendMessage(utils.getRandomFromArray(JERBONICS), toId);
+          chat.sendMessage(utils.getJerryReply(), toId);
         }
       }
       if (cmd === 'fanduel') {
@@ -191,7 +200,15 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             const startDate = contest.start_date;
             const msg = `${contest.name}\u000A--\u000AID: ${contest.id}\u000AEntered: ${entered}/${contest.size.min}\u000AStarts In: ${moment().tz('America/New_York').preciseDiff(moment(startDate).tz('America/New_York'))}`;
             chat.sendMessage(msg, toId);
-          }).catch(err => console.error(`[${cmd}] failed: ${err}`));
+          }).catch(err => console.error(`[${cmd}] faile  function sendMsg(msg, toId) {
+              if (ENV !== 'development') {
+                /* eslint-disable no-param-reassign */
+                toId = config.facebook.userId.tony;
+                /* eslint-enable no-param-reassign */
+                chat.sendMessage(JSON.stringify(msg), toId);
+              }
+              chat.sendMessage(msg, toId);
+            }d: ${err}`));
         }
         if (utils.hasWords(subCmd, 'leaderboard', 'score', 'scores')) {
           rp(opts).then(json =>
@@ -251,13 +268,11 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         { attachment: fs.createReadStream(`${DIR_GIF}/tank.gif`) }][_.random(1)],
         toId
       );
-    } else if (utils.hasWords(event, '🔥')) {
-      chat.sendMessage({ body: '🔥' }, toId);
-    } else {
+    } else if (event.body) {
       const autoResponses = utils.getAutoResponses(event);
       utils.debug(autoResponses);
       if (!_.isEmpty(autoResponses)) {
-        chat.sendMessage(utils.getRandomFromArray(autoResponses), toId);
+        sendMsg(utils.getRandomFromArray(autoResponses), toId);
       }
     }
   });

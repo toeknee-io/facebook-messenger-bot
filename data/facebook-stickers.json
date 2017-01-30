@@ -1,0 +1,58 @@
+{
+	"1057971357612846": {
+		"type": "sticker",
+		"url": "https://scontent.xx.fbcdn.net/t39.1997-6/p128x128/13910693_1057971367612845_1454734096_n.png?_nc_ad=z-m",
+		"stickerID": "1057971357612846",
+		"packID": "811971838879467",
+		"frameCount": 12,
+		"frameRate": 83,
+		"framesPerRow": 4,
+		"framesPerCol": 3,
+		"spriteURI": "https://scontent.xx.fbcdn.net/t39.1997-6/s480x480/13911032_1057971364279512_132955787_n.png?_nc_ad=z-m",
+		"spriteURI2x": "https://scontent.xx.fbcdn.net/t39.1997-6/13911032_1057971364279512_132955787_n.png?_nc_ad=z-m",
+		"height": 120,
+		"width": 120
+	},
+	"514436515347763": {
+		"type": "sticker",
+		"url": "https://scontent.xx.fbcdn.net/t39.1997-6/p128x128/15041966_514436518681096_8381894055583285248_n.png?_nc_ad=z-m",
+		"stickerID": "514436515347763",
+		"packID": "493674027424012",
+		"frameCount": 11,
+		"frameRate": 100,
+		"framesPerRow": 4,
+		"framesPerCol": 3,
+		"spriteURI": "https://scontent.xx.fbcdn.net/t39.1997-6/s480x480/15065533_514436528681095_7693039523881549824_n.png?_nc_ad=z-m",
+		"spriteURI2x": "https://scontent.xx.fbcdn.net/t39.1997-6/15065533_514436528681095_7693039523881549824_n.png?_nc_ad=z-m",
+		"height": 120,
+		"width": 120
+	},
+	"1038959426115524": {
+		"type": "sticker",
+		"url": "https://scontent.xx.fbcdn.net/t39.1997-6/p128x128/11405203_1038959432782190_1705547465_n.png?_nc_ad=z-m",
+		"stickerID": "1038959426115524",
+		"packID": "1035715433106590",
+		"frameCount": 1,
+		"frameRate": 83,
+		"framesPerRow": 1,
+		"framesPerCol": 1,
+		"spriteURI": null,
+		"spriteURI2x": null,
+		"height": 120,
+		"width": 120
+	},
+	"209575325899636": {
+		"type": "sticker",
+		"url": "https://scontent.xx.fbcdn.net/t39.1997-6/p128x128/851582_209575329232969_976565560_n.png?_nc_ad=z-m",
+		"stickerID": "209575325899636",
+		"packID": "175139712676531",
+		"frameCount": 1,
+		"frameRate": 83,
+		"framesPerRow": 1,
+		"framesPerCol": 1,
+		"spriteURI": null,
+		"spriteURI2x": null,
+		"height": 120,
+		"width": 120
+	}
+}
