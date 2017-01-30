@@ -155,8 +155,11 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         if (subCmd && (_.lowerCase(subCmd) === 'tony' || _.lowerCase(subCmd) === 'trump')) {
           chat.sendMessage(`${subCmd} is making bots great again`, toId);
         } else {
-          const opts = _.assign(config.trump.api,
-            { uri: `${config.trump.api.uri}/${subCmd ? 'personalized' : 'random'}`, q: subCmd });
+          const opts = {
+            uri: `${config.trump.api.uri}/${subCmd ? 'personalized' : 'random'}`,
+            q: subCmd,
+            json: true,
+          };
           rp(opts).then((json) => {
             const msg = { body: `"${json.message}"`, attachment: fs.createReadStream(`${DIR_ART}/18.jpg`) };
             chat.sendMessage(msg, toId);
