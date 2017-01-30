@@ -13,14 +13,11 @@ const moment = require('./lib/moment-extended.js');
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
-
-const CREDENTIALS = utils.getCredentials();
-
-
-const addArtPending = [];
-
 const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
+const credentials = utils.getCredentials();
+
+const addArtPending = [];
 
 const REPLY_BAD_CMD = [
   'No', 'In you own ass', 'Eff that', '¯\u005C_(ツ)_/¯',
@@ -31,7 +28,7 @@ const REPLY_BAD_CMD = [
 let writeLock = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
-require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
+require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
@@ -42,13 +39,13 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
   function sendMsg(msg, toId) {
     let recipient = toId;
     if (ENV === 'development') {
-      /* eslint-disable no-param-reassign */
       recipient = config.facebook.userId.tony;
-      /* eslint-enable no-param-reassign */
       chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
     }
     chat.sendMessage(msg, recipient);
   }
+
+  setTimeout(() => utils.checkPresence(chat), 60000);
 
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {
@@ -128,7 +125,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             let msg = 'Art has been refreshed:\u000A\u000A';
 
             artFiles = _.sortBy(fs.readdirSync(DIR_ART, 'utf8'), file => _.toNumber(file.replace('.jpg', '')));
-            artFiles.forEach(artFile => (msg += `${artFile.replace('.jpg', '')}\u000A`));
+            artFiles.forEach(file => (msg += `${file.replace('.jpg', '')}\u000A`));
 
             chat.sendMessage(msg, toId);
           } else if (subCmd === 'list') {
@@ -146,11 +143,11 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             chat.sendMessage(msg, toId);
           }
         } else {
-          const artFile = utils.getRandomFromArray(artFiles);
+          const file = utils.getRandomFromArray(artFiles);
 
           chat.sendMessage({
-            body: artFile.replace('.jpg', ''),
-            attachment: fs.createReadStream(`${DIR_ART}/${artFile}`),
+            body: `/art ${file.replace('.jpg', '')}`,
+            attachment: fs.createReadStream(`${DIR_ART}/${file}`),
           }, toId);
         }
       }
@@ -158,15 +155,13 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         if (subCmd && (_.lowerCase(subCmd) === 'tony' || _.lowerCase(subCmd) === 'trump')) {
           chat.sendMessage(`${subCmd} is making bots great again`, toId);
         } else {
-          const opts = {
-            uri: 'https://api.whatdoestrumpthink.com/api/v1/quotes/random',
-            json: true,
-          };
-          if (subCmd) {
-            opts.uri = 'https://api.whatdoestrumpthink.com/api/v1/quotes/personalized';
-            opts.qs = { q: subCmd };
-          }
-          rp(opts).then(json => chat.sendMessage(json.message, toId));
+          const opts = _.assign(config.trump.api,
+            { uri: config.trump.api.uri += `/${subCmd ? 'personalized' : 'random'}`, q: subCmd });
+          console.dir(opts);
+          rp(opts).then((json) => {
+            const msg = { body: `"${json.message}"`, attachment: fs.createReadStream(`${DIR_ART}/18.jpg`) };
+            chat.sendMessage(msg, toId);
+          }).catch(err => console.error(`trump err: ${err}`));
         }
       }
       if (cmd === 'kick') {
@@ -200,15 +195,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
             const startDate = contest.start_date;
             const msg = `${contest.name}\u000A--\u000AID: ${contest.id}\u000AEntered: ${entered}/${contest.size.min}\u000AStarts In: ${moment().tz('America/New_York').preciseDiff(moment(startDate).tz('America/New_York'))}`;
             chat.sendMessage(msg, toId);
-          }).catch(err => console.error(`[${cmd}] faile  function sendMsg(msg, toId) {
-              if (ENV !== 'development') {
-                /* eslint-disable no-param-reassign */
-                toId = config.facebook.userId.tony;
-                /* eslint-enable no-param-reassign */
-                chat.sendMessage(JSON.stringify(msg), toId);
-              }
-              chat.sendMessage(msg, toId);
-            }d: ${err}`));
+          }).catch(err => console.error(`fanduel info req failed: ${err}`));
         }
         if (utils.hasWords(subCmd, 'leaderboard', 'score', 'scores')) {
           rp(opts).then(json =>
@@ -243,14 +230,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
       }
       if (cmd === 'yoda') {
         if (subCmd) {
-          const opts = {
-            uri: 'https://yoda.p.mashape.com/yoda',
-            qs: { sentence: subCmd },
-            headers: {
-              'X-Mashape-Key': 'EWMSPyqvN7msh0K6qhfZkUUT8OwNp1mzujujsnLI5gVc6qnGpi',
-              accept: 'text/plain',
-            },
-          };
+          const opts = _.assign(config.yoda.api, { qs: { sentence: subCmd } });
           rp(opts).then(res => chat.sendMessage(res, toId));
         } else {
           chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
@@ -260,7 +240,7 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
         rp('http://api.yomomma.info').then(res => chat.sendMessage(JSON.parse(res).joke, toId));
       }
       if (cmd === '8' && event.body.match(/\w\?/)) {
-        rp('https://api.rtainc.co/twitch/8ball?format=The+Magic+8-Ball+says...+%5B0%5D')
+        rp(config['8ball'].api)
         .then(res => chat.sendMessage(res, toId));
       }
     } else if (utils.hasWords(event, 'LGH')) {
@@ -281,17 +261,5 @@ require('facebook-chat-api')(CREDENTIALS, (loginErr, chat) => {
     console.log(`shutdown: exit code ${code}`);
     stopListening();
     console.log('shutdown: bot logged out');
-  });
-});
-
-require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-  if (loginErr) {
-    throw loginErr;
-  }
-  chat.setOptions(config.chat.options);
-  chat.listen((listenErr) => {
-    if (listenErr) {
-      throw listenErr;
-    }
   });
 });
