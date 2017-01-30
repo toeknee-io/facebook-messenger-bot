@@ -157,7 +157,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         } else {
           const opts = {
             uri: `${config.trump.api.uri}/${subCmd ? 'personalized' : 'random'}`,
-            q: subCmd,
+            qs: { q: subCmd },
             json: true,
           };
           rp(opts).then((json) => {
