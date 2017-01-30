@@ -156,8 +156,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           chat.sendMessage(`${subCmd} is making bots great again`, toId);
         } else {
           const opts = _.assign(config.trump.api,
-            { uri: config.trump.api.uri += `/${subCmd ? 'personalized' : 'random'}`, q: subCmd });
-          console.dir(opts);
+            { uri: `${config.trump.api.uri}/${subCmd ? 'personalized' : 'random'}`, q: subCmd });
           rp(opts).then((json) => {
             const msg = { body: `"${json.message}"`, attachment: fs.createReadStream(`${DIR_ART}/18.jpg`) };
             chat.sendMessage(msg, toId);
