@@ -45,7 +45,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     chat.sendMessage(msg, recipient);
   }
 
-  setTimeout(() => utils.checkPresence(chat), 60000);
+  setInterval(() => utils.checkPresence(chat), 60000);
 
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {
@@ -264,4 +264,12 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     stopListening();
     console.log('shutdown: bot logged out');
   });
+});
+
+require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+  if (loginErr) {
+    throw loginErr;
+  }
+
+  setInterval(() => utils.checkPresence(chat), 60000);
 });
