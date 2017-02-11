@@ -69,7 +69,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
     if (event.senderName === 'jerry') {
       const msg = _.isArray(attachv) && attachv.length
-        ? utils.getRandomFromArray(REPLY_BAD_CMD)
+        ? chat.removeUserFromGroup(config.facebook.userId.jerry, event.threadID)
         : utils.getJerryReply();
       chat.sendMessage(msg, toId);
     } else if (event.body && event.body.length <= 2
