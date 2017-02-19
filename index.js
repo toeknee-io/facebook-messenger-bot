@@ -45,7 +45,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     chat.sendMessage(msg, recipient);
   }
 
-  setInterval(() => utils.checkPresence(chat), 30000);
+  // setInterval(() => utils.checkPresence(chat), 30000);
 
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {
@@ -154,6 +154,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       if (cmd === 'trump') {
         if (subCmd && (_.lowerCase(subCmd) === 'tony' || _.lowerCase(subCmd) === 'trump')) {
           chat.sendMessage(`${subCmd} is making bots great again`, toId);
+        } else if (subCmd && (_.lowerCase(subCmd) === 'kevin' || _.lowerCase(subCmd) === 'kvn')) {
+          chat.sendMessage(`${subCmd} has always been one of my biggest supporters!`, toId);
         } else {
           const opts = {
             uri: `${config.trump.api.uri}/${subCmd ? 'personalized' : 'random'}`,
@@ -266,10 +268,10 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   });
 });
 
-require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-  if (loginErr) {
-    throw loginErr;
-  }
-
-  setInterval(() => utils.checkPresence(chat), 45000);
-});
+// require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+//   if (loginErr) {
+//     throw loginErr;
+//   }
+//
+//   setInterval(() => utils.checkPresence(chat), 45000);
+// });
