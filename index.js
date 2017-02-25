@@ -45,7 +45,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     chat.sendMessage(msg, recipient);
   }
 
-  // setInterval(() => utils.checkPresence(chat), 30000);
+  setInterval(() => utils.checkPresence(chat), 60000);
 
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {
@@ -268,10 +268,10 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   });
 });
 
-// require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-//   if (loginErr) {
-//     throw loginErr;
-//   }
-//
-//   setInterval(() => utils.checkPresence(chat), 45000);
-// });
+require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+  if (loginErr) {
+    throw loginErr;
+  }
+
+  setInterval(() => utils.checkPresence(chat), 90000);
+});
