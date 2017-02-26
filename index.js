@@ -69,7 +69,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   server.use(bodyParser.json());
 
   server.post('/bot/facebook/message/send', (req, res) => {
-    const isAllowed = ~config.server.allowedIPs.indexOf(req.ip);
+    const isAllowed = req.get('Authorization') === config.server.authKeys.message.send;
     console.log(`request (${isAllowed}): [${req.ip}] ${req.method} ${req.originalUrl}`);
     const msg = req.body.message || req.body.msg;
     const threadId = req.body.threadId || req.body.threadID || req.body.toId;
