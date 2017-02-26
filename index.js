@@ -72,7 +72,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     const msg = req.body.message || req.body.msg;
     const toId = req.body.toId || req.body.threadId || req.body.threadID;
     const isAllowed = req.get('Authorization') === config.server.authKey.message.send
-      && msg && toId;
+      && !_.isEmpty(msg) && !_.isEmpty(toId);
     console.log(`[${req.ip}] ${req.method} ${req.originalUrl} (isAllowed: ${isAllowed})`);
     if (isAllowed) {
       console.log(`[${req.ip}] sending msg: ${msg} toId: ${toId}`);
