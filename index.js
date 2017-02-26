@@ -146,9 +146,9 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull')
     || ~event.body.indexOf('🐮'))) {
       chat.sendMessage('Eff Bull', toId);
-    } else if (event.body && event.body.length <= 2
+    } else if (event.body && event.body.length <= 8
     && emojiRegex().test(event.body)) {
-      const msg = event.body === '🔥' ? '🔥' : emoji.random();
+      const msg = event.body === '🔥' ? '🔥' : emoji.random().emoji;
       chat.sendMessage(msg, toId);
     } else if (utils.inArtQueue(addArtPending, event)
     && utils.canWrite(writeLock, attachv)) {
