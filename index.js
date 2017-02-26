@@ -16,13 +16,15 @@ const server = express();
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
+
 const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
+
 const credentials = utils.getCredentials();
 
 const addArtPending = [];
 
-const REPLY_BAD_CMD = [
+const replyBadCmd = [
   'No', 'In you own ass', 'Eff that', '¯\u005C_(ツ)_/¯',
   { sticker: '1057971357612846' },
   { attachment: fs.createReadStream(`${DIR_ART}/1.jpg`, 'utf8') },
@@ -192,7 +194,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
             const fileName = path.extname(subCmd) === '.jpg' ? subCmd : `${subCmd}.jpg`;
             const msg = artFiles.indexOf(fileName) > -1
               ? { attachment: fs.createReadStream(`${DIR_ART}/${fileName}`) }
-              : utils.getRandomFromArray(REPLY_BAD_CMD);
+              : utils.getRandomFromArray(replyBadCmd);
 
             chat.sendMessage(msg, toId);
           }
@@ -228,7 +230,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           console.log(`kick: ${subCmd} (${kickId}) from ${event.threadID}`);
           chat.removeUserFromGroup(kickId, event.threadID);
         } else {
-          chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
+          chat.sendMessage(utils.getRandomFromArray(replyBadCmd), toId);
         }
       }
       if (cmd === 'jerbonics') {
@@ -283,7 +285,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       }
       if (cmd === 'gif') {
         const attachment = fs.createReadStream(`${DIR_GIF}/${subCmd}.gif`);
-        attachment.once('error', () => chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId));
+        attachment.once('error', () => chat.sendMessage(utils.getRandomFromArray(replyBadCmd), toId));
         attachment.once('readable', () => chat.sendMessage({ attachment }, toId));
       }
       if (cmd === 'yoda') {
@@ -291,7 +293,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           const opts = _.assign(config.yoda.api, { qs: { sentence: subCmd } });
           rp(opts).then(res => chat.sendMessage(res, toId));
         } else {
-          chat.sendMessage(utils.getRandomFromArray(REPLY_BAD_CMD), toId);
+          chat.sendMessage(utils.getRandomFromArray(replyBadCmd), toId);
         }
       }
       if (cmd === 'joke') {
