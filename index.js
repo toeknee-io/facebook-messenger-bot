@@ -69,10 +69,12 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   server.use(bodyParser.json());
 
   server.post('/bot/facebook/message/send', (req, res) => {
-    console.log(`request: [${req.ip}] ${req.method} ${req.originalUrl}`);
+    const isAllowed = ~config.server.allowedIPs.indexOf(req.ip);
+    console.log(`request (${isAllowed}): [${req.ip}] ${req.method} ${req.originalUrl}`);
     const msg = req.body.message || req.body.msg;
     const threadId = req.body.threadId || req.body.threadID || req.body.toId;
-    if (~config.server.allowedIPs.indexOf(req.ip)) {
+    if (isAllowed) {
+      console.log(`sending msg: ${msg}`);
       sendMsg(msg, threadId, (err) => {
         if (err) {
           console.error(`/bot/facebook/message/send error: ${err}`);
