@@ -16,7 +16,6 @@ const server = express();
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
-
 const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
 
@@ -74,7 +73,6 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     Object.assign(req, { authKey: req.get('Authorization') });
     console.log(`[${req.ip}] ${req.method} ${req.originalUrl} authKey: ${req.authKey}`);
     res.set({ 'X-Powered-By': 'toeknee' });
-    res.removeHeader('ETag');
     next();
   });
 
