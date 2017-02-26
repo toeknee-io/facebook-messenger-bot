@@ -144,7 +144,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         ? kickUserTemporary(config.facebook.userId.jerry, event.threadID)
         : utils.getJerryReply();
       chat.sendMessage(msg, toId);
-    } else if (event.senderName === 'steve') {
+    } else if (event.senderName === 'steve' && typeof event.body === 'string'
+    && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull'))) {
       chat.sendMessage('Eff Bull', toId);
     } else if (event.body && event.body.length <= 2
     && emojiRegex().test(event.body)) {
