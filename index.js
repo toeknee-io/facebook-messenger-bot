@@ -69,20 +69,21 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   server.use(bodyParser.json());
 
   server.post('/bot/facebook/message/send', (req, res) => {
-    const isAllowed = req.get('Authorization') === config.server.authKeys.message.send;
-    console.log(`request (${isAllowed}): [${req.ip}] ${req.method} ${req.originalUrl}`);
     const msg = req.body.message || req.body.msg;
-    const threadId = req.body.threadId || req.body.threadID || req.body.toId;
+    const toId = req.body.toId || req.body.threadId || req.body.threadID;
+    const isAllowed = req.get('Authorization') === config.server.authKey.message.send
+      && msg && toId;
+    console.log(`[${req.ip}] ${req.method} ${req.originalUrl} (isAllowed: ${isAllowed})`);
     if (isAllowed) {
-      console.log(`sending msg: ${msg}`);
-      sendMsg(msg, threadId, (err) => {
+      console.log(`[${req.ip}] sending msg: ${msg} toId: ${toId}`);
+      sendMsg(msg, toId, (err) => {
         if (err) {
-          console.error(`/bot/facebook/message/send error: ${err}`);
+          console.error(`[${req.ip}] sendMsg err: ${err}`);
         }
         res.status(err ? 500 : 201).json({ result: err ? 'fail' : 'success' });
       });
     } else {
-      res.status(403).json({ result: 'fail' });
+      res.status(401).json({ result: 'fail' });
     }
   });
 
