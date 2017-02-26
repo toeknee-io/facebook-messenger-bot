@@ -143,7 +143,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         : utils.getJerryReply();
       chat.sendMessage(msg, toId);
     } else if (event.senderName === 'steve' && typeof event.body === 'string'
-    && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull'))) {
+    && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull')
+    || ~event.body.indexOf('🐮'))) {
       chat.sendMessage('Eff Bull', toId);
     } else if (event.body && event.body.length <= 2
     && emojiRegex().test(event.body)) {
