@@ -31,6 +31,7 @@ const replyBadCmd = [
 ];
 
 let writeLock = false;
+let remotePause = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
 require('facebook-chat-api')(credentials, (loginErr, chat) => {
@@ -70,16 +71,17 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
   server.use(bodyParser.json());
   server.use((req, res, next) => {
-    console.log(`[${req.ip}] ${req.method} ${req.originalUrl}`);
+    Object.assign(req, { authKey: req.get('Authorization') });
+    console.log(`[${req.ip}] ${req.method} ${req.originalUrl} authKey: ${req.authKey}`);
     res.set({ 'X-Powered-By': 'toeknee' });
     next();
   });
 
   server.post('/bot/facebook/message/send', (req, res) => {
+    const authKey = config.server.authKey.message.send;
     const msg = req.body.message || req.body.msg;
     const toId = req.body.toId || req.body.threadId || req.body.threadID;
-    const isAllowed = req.get('Authorization') === config.server.authKey.message.send
-      && !_.isEmpty(msg) && !_.isEmpty(toId);
+    const isAllowed = req.authKey === authKey && !_.isEmpty(msg) && !_.isEmpty(toId);
     if (isAllowed) {
       console.log(`[${req.ip}] sending msg: ${msg} toId: ${toId}`);
       sendMsg(msg, toId, (err) => {
@@ -89,7 +91,20 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         res.status(err ? 500 : 201).json({ result: err ? 'fail' : 'success' });
       });
     } else {
-      console.error(`[${req.ip}] not allowed to send msg: ${msg} toId: ${toId} authKey: ${config.server.authKey.message.send}`);
+      console.error(`[${req.ip}] not allowed to send msg: ${msg} toId: ${toId} authKey: ${authKey}`);
+      res.status(401).json({ result: 'fail' });
+    }
+  });
+
+  server.post('/bot/facebook/message/pause', (req, res) => {
+    const authKey = config.server.authKey.message.pause;
+    const isAllowed = req.authKey === authKey;
+    if (isAllowed) {
+      remotePause = !remotePause;
+      console.log(`[${req.ip}] remotePause set to: ${remotePause}`);
+      res.status(201).json({ result: 'success', remotePause });
+    } else {
+      console.error(`[${req.ip}] not allowed to remote pause bot authKey: ${authKey}`);
       res.status(401).json({ result: 'fail' });
     }
   });
@@ -108,7 +123,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       throw listenErr;
     }
 
-    if (utils.isBot(event) || utils.isCooldown(event)) {
+    if (utils.isBot(event) || utils.isCooldown(event) || remotePause) {
       utils.debug(`skipping event: ${JSON.stringify(event)}
         isBot ${utils.isBot(event)} isCooldown ${utils.isCooldown(event)}`);
       return;
