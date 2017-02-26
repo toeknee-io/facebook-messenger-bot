@@ -3,13 +3,16 @@ const _ = require('lodash');
 const path = require('path');
 const mmm = require('mmmagic');
 const request = require('request');
+const express = require('express');
 const emoji = require('node-emoji');
 const rp = require('request-promise');
 const config = require('./config.json');
 const utils = require('./lib/utils.js');
+const bodyParser = require('body-parser');
 const emojiRegex = require('emoji-regex');
 const moment = require('./lib/moment-extended.js');
 
+const server = express();
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
@@ -36,13 +39,13 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   utils.writeAppState(chat.getAppState());
   chat.setOptions(config.chat.options);
 
-  function sendMsg(msg, toId) {
+  function sendMsg(msg, toId, cb) {
     let recipient = toId;
     if (ENV === 'development') {
       recipient = config.facebook.userId.tony;
       chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
     }
-    chat.sendMessage(msg, recipient);
+    chat.sendMessage(msg, recipient, cb);
   }
 
   function kickUserTemporary(userId, threadId) {
@@ -62,6 +65,26 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   }
 
   setInterval(() => utils.checkPresence(chat), 60000);
+
+  server.use(bodyParser.json());
+
+  server.post('/bot/facebook/message/send', (req, res) => {
+    console.log(`request: [${req.ip}] ${req.method} ${req.originalUrl}`);
+    const msg = req.body.message || req.body.msg;
+    const threadId = req.body.threadId || req.body.threadID || req.body.toId;
+    if (~config.server.allowedIPs.indexOf(req.ip)) {
+      sendMsg(msg, threadId, (err) => {
+        if (err) {
+          console.error(`/bot/facebook/message/send error: ${err}`);
+        }
+        res.status(err ? 500 : 201).json({ result: err ? 'fail' : 'success' });
+      });
+    } else {
+      res.status(403).json({ result: 'fail' });
+    }
+  });
+
+  server.listen(config.server.port, () => console.log(`listening for http requests on port ${config.server.port}`));
 
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {

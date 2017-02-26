@@ -18,7 +18,9 @@
   "author": "toeknee <toeknee@toeknee.io>",
   "license": "MIT",
   "dependencies": {
+    "body-parser": "1.16.1",
     "emoji-regex": "6.1.0",
+    "express": "4.14.1",
     "facebook-chat-api": "1.2.0",
     "lodash": "4.17.4",
     "mmmagic": "0.4.5",
