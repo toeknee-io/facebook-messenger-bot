@@ -67,13 +67,17 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   setInterval(() => utils.checkPresence(chat), 60000);
 
   server.use(bodyParser.json());
+  server.use((req, res, next) => {
+    console.log(`[${req.ip}] ${req.method} ${req.originalUrl}`);
+    res.set({ 'X-Powered-By': 'toeknee' });
+    next();
+  });
 
   server.post('/bot/facebook/message/send', (req, res) => {
     const msg = req.body.message || req.body.msg;
     const toId = req.body.toId || req.body.threadId || req.body.threadID;
     const isAllowed = req.get('Authorization') === config.server.authKey.message.send
       && !_.isEmpty(msg) && !_.isEmpty(toId);
-    console.log(`[${req.ip}] ${req.method} ${req.originalUrl} (isAllowed: ${isAllowed})`);
     if (isAllowed) {
       console.log(`[${req.ip}] sending msg: ${msg} toId: ${toId}`);
       sendMsg(msg, toId, (err) => {
@@ -83,6 +87,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         res.status(err ? 500 : 201).json({ result: err ? 'fail' : 'success' });
       });
     } else {
+      console.error(`[${req.ip}] not allowed to send msg: ${msg} toId: ${toId} authKey: ${config.server.authKey.message.send}`);
       res.status(401).json({ result: 'fail' });
     }
   });
