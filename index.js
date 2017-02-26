@@ -46,14 +46,14 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   }
 
   function kickUserTemporary(userId, threadId) {
-    const nameFromId = _.invert(config.facebook.userId)[userId];
+    const nameFromId = utils.getNameFromFbId(userId);
     const name = nameFromId ? _.capitalize(nameFromId) : 'friend';
     sendMsg(`Timeout time ${name}!`, threadId);
     chat.removeUserFromGroup(userId, threadId);
     setTimeout(() => {
       chat.addUserToGroup(userId, threadId, (err) => {
         if (err) {
-          console.error(`failed to re-add kicked user ${userId}: ${err}`);
+          console.error(`failed to re-add kicked user ${name} (${userId}): ${err}`);
         } else {
           sendMsg(`Welcome back ${name}!`, threadId);
         }
