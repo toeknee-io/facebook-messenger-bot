@@ -45,6 +45,22 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     chat.sendMessage(msg, recipient);
   }
 
+  function kickUserTemporary(userId, threadId) {
+    const nameFromId = _.invert(config.facebook.userId)[userId];
+    const name = nameFromId ? _.capitalize(nameFromId) : 'friend';
+    sendMsg(`Timeout time ${name}!`, threadId);
+    chat.removeUserFromGroup(userId, threadId);
+    setTimeout(() => {
+      chat.addUserToGroup(userId, threadId, (err) => {
+        if (err) {
+          console.error(`failed to re-add kicked user ${userId}: ${err}`);
+        } else {
+          sendMsg(`Welcome back ${name}!`, threadId);
+        }
+      });
+    }, 3600000);
+  }
+
   setInterval(() => utils.checkPresence(chat), 60000);
 
   const stopListening = chat.listen((listenErr, event) => {
@@ -69,7 +85,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
     if (event.senderName === 'jerry') {
       const msg = _.isArray(attachv) && attachv.length
-        ? chat.removeUserFromGroup(config.facebook.userId.jerry, event.threadID)
+        ? kickUserTemporary(config.facebook.userId.jerry, event.threadID)
         : utils.getJerryReply();
       chat.sendMessage(msg, toId);
     } else if (event.body && event.body.length <= 2
