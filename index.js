@@ -84,7 +84,14 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     }
   });
 
-  server.listen(config.server.port, () => console.log(`listening for http requests on port ${config.server.port}`));
+  server.listen(config.server.port, (err) => {
+    const msg = `for http requests on port ${config.server.port}`;
+    if (err) {
+      console.error(`error attempting to listen ${msg}`);
+    } else {
+      console.log(`listening ${msg}`);
+    }
+  });
 
   const stopListening = chat.listen((listenErr, event) => {
     if (listenErr) {
