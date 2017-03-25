@@ -148,7 +148,14 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       chat.sendMessage('Eff Bull', toId);
     } else if (event.body && event.body.length <= 8
     && emojiRegex().test(event.body)) {
-      const msg = event.body === '🔥' ? '🔥' : emoji.random().emoji;
+      let msg;
+      if (event.body === '🔥') {
+        msg = '🔥';
+      } else if (event.body === '🐊') {
+        msg = '🐊\u000A🐊\u000A🐊\u000A🐊\u000A🐊';
+      } else {
+        msg = emoji.random().emoji;
+      }
       chat.sendMessage(msg, toId);
     } else if (utils.inArtQueue(addArtPending, event)
     && utils.canWrite(writeLock, attachv)) {
@@ -322,10 +329,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         .then(res => chat.sendMessage(res, toId));
       }
     } else if (utils.hasWords(event, 'LGH')) {
-      chat.sendMessage([{ body: '🔥' },
-        { attachment: fs.createReadStream(`${DIR_GIF}/tank.gif`) }][_.random(1)],
-        toId
-      );
+      chat.sendMessage({ body: '🔥' }, toId);
     } else if (event.body) {
       const autoResponses = utils.getAutoResponses(event);
       utils.debug(autoResponses);
