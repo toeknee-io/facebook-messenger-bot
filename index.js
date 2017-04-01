@@ -344,12 +344,22 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     stopListening();
     console.log('shutdown: bot logged out');
   });
+
+  process.on('uncaughtException', (err) => {
+    console.log(`exiting due to uncaughtException: ${err}`);
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason, p) => {
+    console.log('exiting due to unhandledRejection: Promise', p, 'reason', reason);
+    process.exit(1);
+  });
 });
 
-require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-  if (loginErr) {
-    throw loginErr;
-  }
-
-  setInterval(() => utils.checkPresence(chat), 90000);
-});
+// require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+//   if (loginErr) {
+//     throw loginErr;
+//   }
+//
+//   setInterval(() => utils.checkPresence(chat), 90000);
+// });
