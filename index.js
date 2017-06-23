@@ -141,7 +141,9 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       const msg = _.isArray(attachv) && attachv.length
         ? kickUserTemporary(config.facebook.userId.jerry, event.threadID)
         : utils.getJerryReply();
-      chat.sendMessage(msg, toId);
+      if (typeof event.body === 'string' && !_.endsWith(event.body, 'v')) {
+        chat.sendMessage(msg, toId);
+      }
     } else if (event.senderName === 'steve' && typeof event.body === 'string'
     && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull')
     || ~event.body.indexOf('🐮'))) {
@@ -170,6 +172,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
             artFiles = fs.readdirSync(DIR_ART, 'utf8');
           });
       });
+    } else if (event.attachments && event.attachments[0].stickerID === '1903509823266983') {
+
     } else if (cmd) {
       const subCmd = utils.getSubCmd(cmd, event);
 
@@ -344,16 +348,16 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     stopListening();
     console.log('shutdown: bot logged out');
   });
+});
 
-  process.on('uncaughtException', (err) => {
-    console.log(`exiting due to uncaughtException: ${err}`);
-    process.exit(1);
-  });
+process.on('uncaughtException', (err) => {
+  console.log(`exiting due to uncaughtException: ${err}`);
+  process.exitCode = 1;
+});
 
-  process.on('unhandledRejection', (reason, p) => {
-    console.log('exiting due to unhandledRejection: Promise', p, 'reason', reason);
-    process.exit(1);
-  });
+process.on('unhandledRejection', (reason, p) => {
+  console.log('exiting due to unhandledRejection: Promise', p, 'reason', reason);
+  process.exitCode = 1;
 });
 
 // require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
