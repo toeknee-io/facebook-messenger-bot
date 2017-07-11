@@ -50,10 +50,10 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     chat.sendMessage(msg, recipient, cb);
   }
 
-  function kickUserTemporary(userId, threadId) {
+  function kickUserTemporary(userId, threadId, msg) {
     const nameFromId = utils.getNameFromFbId(userId);
     const name = nameFromId ? _.capitalize(nameFromId) : 'friend';
-    sendMsg(`Timeout time ${name}!`, threadId);
+    sendMsg(msg || `Timeout time ${name}!`, threadId);
     chat.removeUserFromGroup(userId, threadId);
     setTimeout(() => {
       chat.addUserToGroup(userId, threadId, (err) => {
@@ -138,10 +138,11 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       : config.facebook.userId.tony;
 
     if (event.senderName === 'jerry') {
-      const msg = _.isArray(attachv) && attachv.length
-        ? kickUserTemporary(config.facebook.userId.jerry, event.threadID)
+      const isV = _.endsWith(_.lowerCase(event.body), 'v');
+      const msg = (_.isArray(attachv) && attachv.length) || isV
+        ? kickUserTemporary(config.facebook.userId.jerry, event.threadID, isV ? 'v ya later!' : false)
         : utils.getJerryReply();
-      if (typeof event.body === 'string' && !_.endsWith(event.body, 'v')) {
+      if (typeof event.body === 'string') {
         chat.sendMessage(msg, toId);
       }
     } else if (event.senderName === 'steve' && typeof event.body === 'string'
@@ -172,8 +173,6 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
             artFiles = fs.readdirSync(DIR_ART, 'utf8');
           });
       });
-    } else if (event.attachments && event.attachments[0].stickerID === '1903509823266983') {
-
     } else if (cmd) {
       const subCmd = utils.getSubCmd(cmd, event);
 
