@@ -63,7 +63,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
           sendMsg(`Welcome back ${name}!`, threadId);
         }
       });
-    }, 3600000);
+    }, 600000);
   }
 
   setInterval(() => utils.checkPresence(chat), 60000);
