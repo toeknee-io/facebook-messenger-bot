@@ -128,6 +128,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       return;
     }
 
+    const eventType = utils.getType(event);
+
     utils.assignEventProps(event);
     utils.logEvent(event);
 
@@ -145,6 +147,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       if (typeof event.body === 'string') {
         chat.sendMessage(msg, toId);
       }
+    } else if (eventType === 'sticker' && event.attachments[0].stickerID === '1224059264332534') {
+      chat.sendMessage({ sticker: '1224059264332534' }, toId);
     } else if (event.senderName === 'steve' && typeof event.body === 'string'
     && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull')
     || ~event.body.indexOf('🐮'))) {
