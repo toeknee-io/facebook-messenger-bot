@@ -122,13 +122,17 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       throw listenErr;
     }
 
+    const eventType = utils.getType(event);
+
+    if (eventType === 'message_reaction') {
+      utils.saveReaction(event);
+    }
+
     if (utils.isBot(event) || utils.isCooldown(event) || remotePause) {
       utils.debug(`skipping event: ${JSON.stringify(event)}
         isBot ${utils.isBot(event)} isCooldown ${utils.isCooldown(event)}`);
       return;
     }
-
-    const eventType = utils.getType(event);
 
     utils.assignEventProps(event);
     utils.logEvent(event);
@@ -184,7 +188,29 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     } else if (cmd) {
       const subCmd = utils.getSubCmd(cmd, event);
 
-      if (cmd === 'art') {
+      if (cmd === 'rankings') {
+        let rankings = '';
+
+        utils.getReactions().then((reactions) => {
+          Object.keys(reactions).forEach((senderId) => {
+            const userReactions = reactions[senderId];
+            const name = utils.getNameFromFbId(senderId);
+            let score = 0;
+
+            userReactions.forEach((userReaction) => {
+              if (_.isNumber(userReaction.reactionScore)) {
+                score += userReaction.reactionScore;
+              }
+            });
+
+            rankings += `${name}: ${score}\u000A`;
+          });
+
+          console.log(rankings);
+
+          chat.sendMessage(rankings, toId);
+        });
+      } else if (cmd === 'art') {
         if (subCmd) {
           if (subCmd === 'add') {
             addArtPending.push(event.senderID);
@@ -373,10 +399,10 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   }
 
   chat.listen((listenErr, event) => {
-    if (event.threadID && !config.facebook.threadIds.includes(event.threadID)) {
-      utils.assignEventProps(event);
-      utils.logEvent(event);
-    }
+    // if (event.threadID && !config.facebook.threadIds.includes(event.threadID)) {
+    utils.assignEventProps(event);
+    utils.logEvent(event);
+    // }
 
     // if (event.senderID === config.facebook.userId.kevin && !_.isEmpty(event.messageID)) {
     //   chat.setMessageReaction(':thumbsdown:', event.messageID);
