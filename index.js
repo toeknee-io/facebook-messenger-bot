@@ -1,7 +1,7 @@
 const fs = require('fs');
 const _ = require('lodash');
 const path = require('path');
-const mmm = require('mmmagic');
+// const mmm = require('mmmagic');
 const request = require('request');
 const express = require('express');
 const emoji = require('node-emoji');
@@ -13,7 +13,7 @@ const emojiRegex = require('emoji-regex');
 const moment = require('./lib/moment-extended.js');
 
 const server = express();
-const magic = new mmm.Magic(mmm.MAGIC_MIME);
+// const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
 const DIR_ART = `${__dirname}/art`;
@@ -139,6 +139,10 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       ? event.threadID
       : config.facebook.userId.tony;
 
+    if (event.senderName === 'james' && !_.isEmpty(event.messageID)) {
+      chat.setMessageReaction(':thumbsdown:', event.messageID);
+    }
+
     if (event.senderName === 'jerry') {
       const isV = _.endsWith(_.lowerCase(event.body), 'v');
       const msg = (_.isArray(attachv) && attachv.length) || isV
@@ -188,26 +192,26 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
             const attachment = [];
             artFiles.forEach((file) => {
               const filePath = `${DIR_ART}/${file}`;
-              magic.detectFile(filePath, (err, result) => {
-                if (err) {
-                  console.error(err);
-                } else {
-                  if (result.match(/jpeg|png/)) {
-                    attachment.push(fs.createReadStream(filePath));
-                  } else {
-                    console.error(`invalid art type (${result}): ${filePath}`);
-                    artFiles.splice(artFiles.indexOf(file), 1);
-                    fs.unlink(filePath, (unlinkErr) => {
-                      if (unlinkErr) {
-                        console.error(`failed to deleted invalid art file: ${filePath}`);
-                      }
-                    });
-                  }
-                  if (attachment.length === artFiles.length) {
-                    chat.sendMessage({ attachment }, toId);
-                  }
-                }
-              });
+              // magic.detectFile(filePath, (err, result) => {
+              //   if (err) {
+              //     console.error(err);
+              //   } else {
+              //     if (result.match(/jpeg|png/)) {
+              //       attachment.push(fs.createReadStream(filePath));
+              //     } else {
+              //       console.error(`invalid art type (${result}): ${filePath}`);
+              //       artFiles.splice(artFiles.indexOf(file), 1);
+              //       fs.unlink(filePath, (unlinkErr) => {
+              //         if (unlinkErr) {
+              //           console.error(`failed to deleted invalid art file: ${filePath}`);
+              //         }
+              //       });
+              //     }
+              //     if (attachment.length === artFiles.length) {
+              //       chat.sendMessage({ attachment }, toId);
+              //     }
+              //   }
+              // });
             });
           } else if (subCmd === 'refresh') {
             let msg = 'Art has been refreshed:\u000A\u000A';
@@ -363,10 +367,20 @@ process.on('unhandledRejection', (reason, p) => {
   process.exitCode = 1;
 });
 
-// require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-//   if (loginErr) {
-//     throw loginErr;
-//   }
-//
-//   setInterval(() => utils.checkPresence(chat), 90000);
-// });
+require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+  if (loginErr) {
+    throw loginErr;
+  }
+
+  chat.listen((listenErr, event) => {
+    if (event.threadID && !config.facebook.threadIds.includes(event.threadID)) {
+      utils.logEvent(event);
+    }
+
+    // if (event.senderID === config.facebook.userId.kevin && !_.isEmpty(event.messageID)) {
+    //   chat.setMessageReaction(':thumbsdown:', event.messageID);
+    // }
+  });
+
+  setInterval(() => utils.checkPresence(chat), 90000);
+});
