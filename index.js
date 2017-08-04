@@ -29,6 +29,8 @@ const replyBadCmd = [
   { attachment: fs.createReadStream(`${DIR_ART}/1.jpg`, 'utf8') },
 ];
 
+const clients = {};
+
 let writeLock = false;
 let remotePause = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
@@ -37,11 +39,16 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
+  const userIds = config.facebook.userId;
+
+  clients[userIds.bot] = chat;
+
+  Object.assign(chat, { clients });
 
   utils.writeAppState(chat.getAppState());
   chat.setOptions(config.chat.options);
 
-  function sendMsg(msg, toId, cb) {
+  function sendMsg(msg, toId, cb = err => (err ? console.error(err) : false)) {
     let recipient = toId;
     if (ENV === 'development') {
       recipient = config.facebook.userId.tony;
@@ -128,9 +135,10 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       utils.saveReaction(event);
     }
 
+    utils.avengeKickedAlly(chat, event);
+
     if (utils.isBot(event) || utils.isCooldown(event) || remotePause) {
-      utils.debug(`skipping event: ${JSON.stringify(event)}
-        isBot ${utils.isBot(event)} isCooldown ${utils.isCooldown(event)}`);
+      utils.debug(`skipping event: ${JSON.stringify(event)}\nisBot ${utils.isBot(event)} isCooldown ${utils.isCooldown(event)}`);
       return;
     }
 
@@ -156,7 +164,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
         chat.sendMessage(msg, toId);
       }
     } else if (eventType === 'sticker' && event.attachments[0].stickerID === '1224059264332534') {
-      chat.sendMessage({ sticker: '1224059264332534' }, toId);
+      chat.sendMessage({ sticker: '1224059264332534' }, toId, err => console.error(err));
     } else if (event.senderName === 'steve' && typeof event.body === 'string'
     && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull')
     || ~event.body.indexOf('🐮'))) {
@@ -397,17 +405,19 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
   }
+  const userIds = config.facebook.userId;
+
+  clients[userIds.tony] = chat;
+
+  Object.assign(chat, { clients });
+
+  chat.setOptions({ listenEvents: true, forceLogin: true });
 
   chat.listen((listenErr, event) => {
-    // if (event.threadID && !config.facebook.threadIds.includes(event.threadID)) {
     utils.assignEventProps(event);
     utils.logEvent(event);
-    // }
-
-    // if (event.senderID === config.facebook.userId.kevin && !_.isEmpty(event.messageID)) {
-    //   chat.setMessageReaction(':thumbsdown:', event.messageID);
-    // }
+    utils.avengeKickedAlly(chat, event);
   });
 
-  setInterval(() => utils.checkPresence(chat), 90000);
+  setInterval(() => utils.checkPresence(chat), 180000);
 });
