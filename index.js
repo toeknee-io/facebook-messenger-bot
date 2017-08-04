@@ -19,7 +19,7 @@ const ENV = process.env.NODE_ENV;
 const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
 
-const credentials = utils.getCredentials();
+// const credentials = utils.getCredentials();
 
 const addArtPending = [];
 
@@ -35,12 +35,10 @@ let writeLock = false;
 let remotePause = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
-process.on('beforeExit', (code) => {
-  console.log(`shutdown: exit code ${code}`);
-
-  Object.entries(clients).forEach((client) => {
-    console.log('logging out client', client);
+process.on('SIGINT', () => {
+  Object.values(clients).forEach((client) => {
     if (_.isFunction(client.logout)) {
+      console.log('logging out client', client);
       client.logout();
     }
   });
@@ -48,17 +46,18 @@ process.on('beforeExit', (code) => {
 
 process.on('uncaughtException', (err) => {
   console.log(`exiting due to uncaughtException: ${err}`);
-  process.exitCode = 1;
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, p) => {
   console.log('exiting due to unhandledRejection: Promise', p, 'reason', reason);
-  process.exitCode = 1;
+  process.exit(1);
 });
 
-require('facebook-chat-api')(credentials, (loginErr, chat) => {
+require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) => {
   if (loginErr) {
-    throw loginErr;
+    console.error('exiting due to login err:', loginErr);
+    process.exit(1);
   }
   const userIds = config.facebook.userId;
 
@@ -66,7 +65,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
   Object.assign(chat, { clients });
 
-  utils.writeAppState(chat.getAppState());
+  // utils.writeAppState(chat.getAppState());
   chat.setOptions(config.chat.options);
 
   function sendMsg(msg, toId, cb = err => (err ? console.error(err) : false)) {
@@ -408,7 +407,8 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
 
 require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   if (loginErr) {
-    throw loginErr;
+    console.error('exiting due to login err:', loginErr);
+    process.exit(1);
   }
   const userIds = config.facebook.userId;
 
@@ -416,7 +416,7 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
 
   Object.assign(chat, { clients });
 
-  chat.setOptions({ listenEvents: true, forceLogin: true });
+  chat.setOptions({ listenEvents: true });
 
   chat.listen((listenErr, event) => {
     utils.assignEventProps(event);
