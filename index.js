@@ -35,6 +35,27 @@ let writeLock = false;
 let remotePause = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
+process.on('beforeExit', (code) => {
+  console.log(`shutdown: exit code ${code}`);
+
+  Object.entries(clients).forEach((client) => {
+    console.log('logging out client', client);
+    if (_.isFunction(client.logout)) {
+      client.logout();
+    }
+  });
+});
+
+process.on('uncaughtException', (err) => {
+  console.log(`exiting due to uncaughtException: ${err}`);
+  process.exitCode = 1;
+});
+
+process.on('unhandledRejection', (reason, p) => {
+  console.log('exiting due to unhandledRejection: Promise', p, 'reason', reason);
+  process.exitCode = 1;
+});
+
 require('facebook-chat-api')(credentials, (loginErr, chat) => {
   if (loginErr) {
     throw loginErr;
@@ -124,7 +145,7 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
     }
   });
 
-  const stopListening = chat.listen((listenErr, event) => {
+  chat.listen((listenErr, event) => {
     if (listenErr) {
       throw listenErr;
     }
@@ -383,22 +404,6 @@ require('facebook-chat-api')(credentials, (loginErr, chat) => {
       }
     }
   });
-
-  process.on('exit', (code) => {
-    console.log(`shutdown: exit code ${code}`);
-    stopListening();
-    console.log('shutdown: bot logged out');
-  });
-});
-
-process.on('uncaughtException', (err) => {
-  console.log(`exiting due to uncaughtException: ${err}`);
-  process.exitCode = 1;
-});
-
-process.on('unhandledRejection', (reason, p) => {
-  console.log('exiting due to unhandledRejection: Promise', p, 'reason', reason);
-  process.exitCode = 1;
 });
 
 require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
