@@ -53,11 +53,22 @@ process.on('unhandledRejection', (reason, p) => {
   process.exit(1);
 });
 
+const botLoginLock = `${config.chat.credentials.tonyBot.email}.lock`;
+const botLocked = _.attempt(() => fs.readFileSync(botLoginLock));
+
+if (!_.isError(botLocked)) {
+  console.error('bot login locked, exiting', botLocked);
+  process.exit(1);
+}
+
 require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) => {
   if (loginErr) {
     console.error('exiting due to login err:', loginErr);
+    fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
     process.exit(1);
   }
+  fs.unlink(botLoginLock, console.error);
+
   const userIds = config.facebook.userId;
 
   clients[userIds.bot] = chat;
@@ -151,7 +162,7 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
     const eventType = utils.getType(event);
 
     if (eventType === 'message_reaction') {
-      utils.saveReaction(event);
+      utils.saveReaction(event).catch(console.error);
     }
 
     utils.avengeKickedAlly(chat, event);
@@ -406,11 +417,22 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
   });
 });
 
+const tonyLoginLock = `${config.chat.credentials.tony.email}.lock`;
+const tonyLocked = _.attempt(() => fs.readFileSync(tonyLoginLock));
+
+if (!_.isError(tonyLocked)) {
+  console.error('tony login locked, exiting', tonyLocked);
+  process.exit(1);
+}
+
 require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   if (loginErr) {
     console.error('exiting due to login err:', loginErr);
+    fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
     process.exit(1);
   }
+  fs.unlink(tonyLoginLock, console.error);
+
   const userIds = config.facebook.userId;
 
   clients[userIds.tony] = chat;
