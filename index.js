@@ -63,8 +63,8 @@ if (!_.isError(botLocked)) {
 
 require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) => {
   if (loginErr) {
-    console.error('exiting due to login err:', loginErr);
     fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+    console.error(`creating lock file ${botLoginLock} and exiting due to login err`);
     process.exit(1);
   }
   fs.unlink(botLoginLock, console.error);
@@ -427,8 +427,8 @@ if (!_.isError(tonyLocked)) {
 
 require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   if (loginErr) {
-    console.error('exiting due to login err:', loginErr);
     fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+    console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
     process.exit(1);
   }
   fs.unlink(tonyLoginLock, console.error);
