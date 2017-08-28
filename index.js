@@ -21,6 +21,7 @@ const DIR_GIF = `${__dirname}/gif`;
 
 // const credentials = utils.getCredentials();
 
+const clients = {};
 const addArtPending = [];
 
 const replyBadCmd = [
@@ -28,8 +29,6 @@ const replyBadCmd = [
   { sticker: '1057971357612846' },
   { attachment: fs.createReadStream(`${DIR_ART}/1.jpg`, 'utf8') },
 ];
-
-const clients = {};
 
 let writeLock = false;
 let remotePause = false;
