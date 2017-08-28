@@ -13,6 +13,9 @@ module.exports = {
         NODE_ENV: 'production',
       },
       log_date_format: 'HH:mm:ss.SSS',
+      min_uptime: 10000,
+      max_restarts: 10,
+      restart_delay: 30000,
     },
   ],
 };
