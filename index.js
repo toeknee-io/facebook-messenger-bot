@@ -176,11 +176,13 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
 
     if (event.senderName === 'jerry') {
       const isV = _.endsWith(_.lowerCase(event.body), 'v');
+      const jerryId = config.facebook.userId.jerry;
       const msg = (_.isArray(attachv) && attachv.length) || isV
-        ? kickUserTemporary(config.facebook.userId.jerry, event.threadID, isV ? 'v ya later!' : false)
+        ? kickUserTemporary(jerryId, event.threadID, isV ? 'v ya later!' : false)
         : utils.getJerryReply();
       if (typeof event.body === 'string') {
-        chat.sendMessage(msg, toId);
+        // chat.sendMessage(msg, toId);
+        console.log(msg);
       }
     } else if (eventType === 'sticker' && event.attachments[0].stickerID === '1224059264332534') {
       chat.sendMessage({ sticker: '1224059264332534' }, toId, err => console.error(err));
