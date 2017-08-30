@@ -14,7 +14,8 @@
     "stop": "pm2 stop $npm_package_config_pm2Config",
     "restart": "pm2 restart $npm_package_config_pm2Config && npm run-script tail",
     "redeploy": "git pull && npm install && npm run-script restart",
-    "delete": "pm2 delete $npm_package_config_pm2Config && pm2 ls"
+    "delete": "pm2 delete $npm_package_config_pm2Config && pm2 ls",
+    "st": "npm start && npm run-script tail"
   },
   "author": "toeknee <toeknee@toeknee.io>",
   "license": "MIT",
