@@ -16,6 +16,8 @@ const server = express();
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
+const isDev = ENV === 'development';
+
 const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
 
@@ -38,7 +40,7 @@ process.on('SIGINT', () => {
   Object.values(clients).forEach((client) => {
     if (_.isFunction(client.logout)) {
       console.log('logging out client', client);
-      client.logout();
+      // client.logout();
     }
   });
 });
@@ -61,13 +63,18 @@ if (!_.isError(botLocked)) {
   process.exit(1);
 }
 
-require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) => {
+const appState = _.attempt(() => JSON.parse(fs.readFileSync('appstate-bot.json', 'utf8')));
+const creds = _.isError(appState) || typeof appState !== 'object' ? config.chat.credentials.tonyBot : { appState };
+
+require('facebook-chat-api')(creds, (loginErr, chat) => {
   if (loginErr) {
     fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
     console.error(`creating lock file ${botLoginLock} and exiting due to login err`);
     process.exit(1);
   }
-  fs.unlink(botLoginLock, console.error);
+  fs.writeFileSync('appstate-bot.json', JSON.stringify(chat.getAppState()));
+
+  _.attempt(() => fs.unlink(botLoginLock, console.error));
 
   const userIds = config.facebook.userId;
 
@@ -75,12 +82,11 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
 
   Object.assign(chat, { clients });
 
-  // utils.writeAppState(chat.getAppState());
   chat.setOptions(config.chat.options);
 
   function sendMsg(msg, toId, cb = err => (err ? console.error(err) : false)) {
     let recipient = toId;
-    if (ENV === 'development') {
+    if (isDev) {
       recipient = config.facebook.userId.tony;
       chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
     }
@@ -90,7 +96,9 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
   function kickUserTemporary(userId, threadId, msg) {
     const nameFromId = utils.getNameFromFbId(userId);
     const name = nameFromId ? _.capitalize(nameFromId) : 'friend';
-    sendMsg(msg || `Timeout time ${name}!`, threadId);
+    if (!_.isEmpty(msg)) {
+      sendMsg(msg, threadId);
+    }
     chat.removeUserFromGroup(userId, threadId);
     setTimeout(() => {
       chat.addUserToGroup(userId, threadId, (err) => {
@@ -145,7 +153,9 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
     }
   });
 
-  server.listen(config.server.port, (err) => {
+  const serverPort = _.toNumber(config.server.port);
+
+  server.listen(isDev ? serverPort + 1 : serverPort, (err) => {
     const msg = `for http requests on port ${config.server.port}`;
     if (err) {
       console.error(`error attempting to listen ${msg}`);
@@ -175,21 +185,25 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
     utils.assignEventProps(event);
     utils.logEvent(event);
 
+    const b = event.body;
     const cmd = utils.getCmd(event);
     const attachv = event.attachments;
+    const senderName = event.senderName;
+    const jerryId = config.facebook.userId.jerry;
     const toId = ENV !== 'development'
       ? event.threadID
       : config.facebook.userId.tony;
 
-    if (event.senderName === 'james' && !_.isEmpty(event.messageID)) {
+    if (senderName === 'james' && !_.isEmpty(event.messageID)) {
       chat.setMessageReaction(':thumbsdown:', event.messageID);
     }
-
-    if (event.senderName === 'jerry') {
+    if (b === 'neutralize the jerry') {
+      kickUserTemporary(jerryId, event.threadID, null);
+    }
+    if (senderName === 'jerry') {
       const isV = _.endsWith(_.lowerCase(event.body), 'v');
-      const jerryId = config.facebook.userId.jerry;
       const msg = (_.isArray(attachv) && attachv.length) || isV
-        ? kickUserTemporary(jerryId, event.threadID, isV ? 'v ya later!' : false)
+        ? kickUserTemporary(jerryId, event.threadID, isV ? 'v ya later!' : `Timeout time ${senderName}!`)
         : utils.getJerryReply();
       if (typeof event.body === 'string') {
         // chat.sendMessage(msg, toId);
@@ -232,9 +246,12 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
         let rankings = '';
 
         utils.getReactions().then((reactions) => {
+          let results = [];
+
           Object.keys(reactions).forEach((senderId) => {
             const userReactions = reactions[senderId];
-            const name = utils.getNameFromFbId(senderId);
+            const name = utils.getNameFromFbId(senderId) || senderId;
+
             let score = 0;
 
             userReactions.forEach((userReaction) => {
@@ -243,9 +260,13 @@ require('facebook-chat-api')(config.chat.credentials.tonyBot, (loginErr, chat) =
               }
             });
 
-            rankings += `${name}: ${score}\u000A`;
+            results.push({ name, score });
           });
 
+          results = _.sortBy(results, ['score']);
+          console.dir(results);
+
+          results.forEach((u) => { rankings += `${u.name}: ${u.score}\u000A`; });
           console.log(rankings);
 
           chat.sendMessage(rankings, toId);
@@ -431,7 +452,7 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
     console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
     process.exit(1);
   }
-  fs.unlink(tonyLoginLock, console.error);
+  _.attempt(() => fs.unlink(botLoginLock, console.error));
 
   const userIds = config.facebook.userId;
 
