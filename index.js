@@ -264,10 +264,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
           });
 
           results = _.sortBy(results, ['score']).reverse();
-          console.dir(results);
-
           results.forEach((u) => { rankings += `${u.name}: ${u.score}\u000A`; });
-          console.log(rankings);
 
           chat.sendMessage(rankings, toId);
         });
