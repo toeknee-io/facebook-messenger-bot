@@ -16,6 +16,8 @@ const server = express();
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
+const isDev = ENV === 'development';
+
 const DIR_ART = `${__dirname}/art`;
 const DIR_GIF = `${__dirname}/gif`;
 
@@ -72,7 +74,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
   }
   fs.writeFileSync('appstate-bot.json', JSON.stringify(chat.getAppState()));
 
-  fs.unlink(botLoginLock, console.error);
+  _.attempt(() => fs.unlink(botLoginLock, console.error));
 
   const userIds = config.facebook.userId;
 
@@ -84,7 +86,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
 
   function sendMsg(msg, toId, cb = err => (err ? console.error(err) : false)) {
     let recipient = toId;
-    if (ENV === 'development') {
+    if (isDev) {
       recipient = config.facebook.userId.tony;
       chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
     }
@@ -151,7 +153,9 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     }
   });
 
-  server.listen(config.server.port, (err) => {
+  const serverPort = _.toNumber(config.server.port);
+
+  server.listen(isDev ? serverPort + 1 : serverPort, (err) => {
     const msg = `for http requests on port ${config.server.port}`;
     if (err) {
       console.error(`error attempting to listen ${msg}`);
@@ -242,6 +246,8 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
         let rankings = '';
 
         utils.getReactions().then((reactions) => {
+          let results = [];
+
           Object.keys(reactions).forEach((senderId) => {
             const userReactions = reactions[senderId];
             const name = utils.getNameFromFbId(senderId) || senderId;
@@ -254,9 +260,13 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
               }
             });
 
-            rankings += `${name}: ${score}\u000A`;
+            results.push({ name, score });
           });
 
+          results = _.sortBy(results, ['score']).reverse();
+          console.dir(results);
+
+          results.forEach((u) => { rankings += `${u.name}: ${u.score}\u000A`; });
           console.log(rankings);
 
           chat.sendMessage(rankings, toId);
@@ -442,7 +452,7 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
     console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
     process.exit(1);
   }
-  fs.unlink(tonyLoginLock, console.error);
+  _.attempt(() => fs.unlink(botLoginLock, console.error));
 
   const userIds = config.facebook.userId;
 
