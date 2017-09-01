@@ -6,12 +6,12 @@ const request = require('request');
 const express = require('express');
 const emoji = require('node-emoji');
 const rp = require('request-promise');
+const EventEmitter = require('events');
 const config = require('./config.json');
 const utils = require('./lib/utils.js');
 const bodyParser = require('body-parser');
 const emojiRegex = require('emoji-regex');
-const moment = require('./lib/moment-extended.js');
-const EventEmitter = require('events');
+// const moment = require('./lib/moment-extended.js');
 
 const emitter = new EventEmitter();
 
@@ -32,6 +32,12 @@ const addArtPending = [];
 const userIds = config.facebook.userId;
 const { tony: tonyId, jerry: jerryId, bot: botId } = userIds;
 
+const troll = [];
+const untrollable = [tonyId, botId];
+
+
+const kicked = [];
+
 const replyBadCmd = [
   'No', 'In you own ass', 'Eff that', '¯\u005C_(ツ)_/¯',
   { sticker: '1057971357612846' },
@@ -45,7 +51,7 @@ let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 process.on('SIGINT', () => {
   Object.values(clients).forEach((client) => {
     if (_.isFunction(client.logout)) {
-      console.log('logging out client', client);
+      // console.log('logging out client', client);
       // client.logout();
     }
   });
@@ -72,32 +78,34 @@ if (!_.isError(botLocked)) {
 const appState = _.attempt(() => JSON.parse(fs.readFileSync('appstate-bot.json', 'utf8')));
 const creds = _.isError(appState) || typeof appState !== 'object' ? config.chat.credentials.tonyBot : { appState };
 
+function addClient(chat, id) {
+  clients[id] = chat;
+  Object.assign(chat, { clients });
+}
+
 require('facebook-chat-api')(creds, (loginErr, chat) => {
   if (loginErr) {
     fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
     console.error(`creating lock file ${botLoginLock} and exiting due to login err`);
     process.exit(1);
   }
+  chat.setOptions(config.chat.options);
+
   fs.writeFileSync('appstate-bot.json', JSON.stringify(chat.getAppState()));
 
   _.attempt(() => fs.unlink(botLoginLock, console.error));
 
-  clients[botId] = chat;
-
-  Object.assign(chat, { clients });
-
-  chat.setOptions(config.chat.options);
+  addClient(chat, botId);
 
   function sendMsg(msg, toId, cb = err => (err ? console.error(err) : false)) {
     let recipient = toId;
     if (isDev) {
       recipient = config.facebook.userId.tony;
       chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
+    } else {
+      chat.sendMessage(msg, recipient, cb);
     }
-    chat.sendMessage(msg, recipient, cb);
   }
-
-  const kicked = [];
 
   function kick(uid, tid) {
     return new Promise((resolve, reject) => {
@@ -109,20 +117,25 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
 
   function addUser(uid, tid) {
     return new Promise((resolve, reject) => {
-      chat.addUserToGroup(uid, tid, (err) => {
-        if (err) { reject(err); } else { resolve(uid, tid); }
-      });
+      _.remove(kicked, k => k.uid === uid);
+      if (utils.isBlockedThread(tid)) {
+        reject(new Error(`Cannot addUser to blocked thread ${tid}`));
+      } else {
+        chat.addUserToGroup(uid, tid, (err) => {
+          if (err) { reject(err); } else { resolve(uid, tid); }
+        });
+      }
     });
   }
 
-  function kickUserTemporary(userId, threadId, kickMsg) {
+  function kickUserTemporary(userId, threadId, kickMsg, timeoutMs = 100000) {
     if (!_.isEmpty(kickMsg)) {
       sendMsg(kickMsg, threadId);
     }
     kick(userId, threadId)
       .then(() =>
         setTimeout(() => emitter.emit('addUser', userId, threadId)
-      , 100000))
+      , timeoutMs))
         .catch(console.error);
   }
 
@@ -203,12 +216,13 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       return;
     }
 
-    utils.assignEventProps(event);
-    utils.logEvent(event);
-
     const { senderName,
       messageID: mesId, threadID: thrId, body: b,
-      attachments: attachv = [], senderID: sendId } = event;
+      attachments: attachv = [], senderID: sendId } = utils.assignEventProps(event);
+
+    utils.logEvent(event);
+
+    const lowB = _.toLower(b);
     const a0 = attachv[0] || {};
 
     const cmd = utils.getCmd(event);
@@ -219,9 +233,9 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
 
     if (senderName === 'james' && !_.isEmpty(mesId)) {
       chat.setMessageReaction(':thumbsdown:', mesId);
-    } else if (b === 'neutralize the jerry') {
+    } else if (lowB === 'neutralize the jerry') {
       kickUserTemporary(jerryId, thrId, null);
-    } else if (b === 'unfreeze the channel idiot' ||
+    } else if (lowB === 'unfreeze the channel idiot' ||
     (eventType === 'photo' && (a0.width === 498 && a0.height === 250))) {
       kicked.forEach(({ u, t }) => {
         const name = utils.getNameFromFbId(sendId) || 'rando';
@@ -230,16 +244,13 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
           .catch(console.error);
       });
     }
-    if (senderName === 'jerry') {
-      const isV = _.endsWith(_.lowerCase(b), 'v');
-      const msg = (_.isArray(attachv) && attachv.length) || isV
-        ? kickUserTemporary(jerryId, event.threadID, isV ? 'v ya later!' : `Timeout time ${senderName}!`)
-        : utils.getJerryReply();
-      if (typeof b === 'string') {
-        // chat.sendMessage(msg, toId);
-        console.log(msg);
-      }
-    } else if (eventType === 'sticker' && event.attachments[0].stickerID === '1224059264332534') {
+    if (senderName === 'jerry' && attachv.length) {
+      const isV = _.endsWith(lowB, 'v');
+      const msg = isV ? 'v ya later!' : `Timeout time ${senderName}!`;
+      kickUserTemporary(jerryId, thrId, msg, 5000);
+    } else if (typeof b === 'string' && troll.includes(sendId)) {
+      sendMsg(utils.getJerryReply(), toId);
+    } else if (eventType === 'sticker' && a0.stickerID === '1224059264332534') {
       chat.sendMessage({ sticker: '1224059264332534' }, toId, err => console.error(err));
     } else if (senderName === 'steve' && typeof b === 'string'
     && (~b.toLowerCase().indexOf('heat') || ~b.toLowerCase().indexOf('bull')
@@ -338,7 +349,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
             artFiles.forEach(file =>
               chat.sendMessage(
                 { body: `/art ${file.replace('.jpg', '')}`, attachment: fs.createReadStream(`${DIR_ART}/${file}`) },
-                event.senderID
+                sendId
               ));
           } else {
             const fileName = path.extname(subCmd) === '.jpg' ? subCmd : `${subCmd}.jpg`;
@@ -377,8 +388,8 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       if (cmd === 'kick') {
         const kickId = config.facebook.userId[subCmd];
         if (senderName === 'tony' && kickId) {
-          console.log(`kick: ${subCmd} (${kickId}) from ${event.threadID}`);
-          chat.removeUserFromGroup(kickId, event.threadID);
+          console.log(`kick: ${subCmd} (${kickId}) from ${thrId}`);
+          chat.removeUserFromGroup(kickId, thrId);
         } else {
           chat.sendMessage(utils.getRandomFromArray(replyBadCmd), toId);
         }
@@ -389,34 +400,6 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
         } else {
           chat.sendMessage(utils.getJerryReply(), toId);
         }
-      }
-      if (cmd === 'fanduel') {
-        const baseUrl = utils.getFanDuelBaseUrl(event);
-        const opts = {
-          uri: subCmd === 'info' ? baseUrl : `${baseUrl}/entries?page=1&page_size=10`,
-          headers: config.fanDuel.authHeader,
-          json: true,
-        };
-
-        if (subCmd === 'info') {
-          rp(opts).then((json) => {
-            const contest = json.contests[0];
-            const entered = contest.entries.count;
-            const startDate = contest.start_date;
-            const msg = `${contest.name}\u000A--\u000AID: ${contest.id}\u000AEntered: ${entered}/${contest.size.min}\u000AStarts In: ${moment().tz('America/New_York').preciseDiff(moment(startDate).tz('America/New_York'))}`;
-            chat.sendMessage(msg, toId);
-          }).catch(err => console.error(`fanduel info req failed: ${err}`));
-        }
-        if (utils.hasWords(subCmd, 'leaderboard', 'score', 'scores')) {
-          rp(opts).then(json =>
-            chat.sendMessage(utils.getFanDuelLeaderboard(json), toId)
-          ).catch(err => console.error(`[${cmd}] failed: ${err}`));
-        }
-      }
-      if (cmd === 'countdown') {
-        const endDate = config.cooldown.endDate[subCmd];
-        const diff = moment().preciseDiff(moment(endDate));
-        chat.sendMessage(`${_.lowerCase(subCmd)} (${moment.formatPref(endDate)})\u000A${diff}`, toId);
       }
       if (cmd === 'weather') {
         const opts = {
@@ -438,20 +421,49 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
         attachment.once('error', () => chat.sendMessage(utils.getRandomFromArray(replyBadCmd), toId));
         attachment.once('readable', () => chat.sendMessage({ attachment }, toId));
       }
-      if (cmd === 'yoda') {
-        if (subCmd) {
-          const opts = _.assign(config.yoda.api, { qs: { sentence: subCmd } });
-          rp(opts).then(res => chat.sendMessage(res, toId));
-        } else {
-          chat.sendMessage(utils.getRandomFromArray(replyBadCmd), toId);
-        }
-      }
       if (cmd === 'joke') {
         rp('http://api.yomomma.info').then(res => chat.sendMessage(JSON.parse(res).joke, toId));
       }
       if (cmd === '8' && b.match(/\w\?/)) {
         rp(config['8ball'].api)
         .then(res => chat.sendMessage(res, toId));
+      }
+      if (cmd === 'troll') {
+        const arg3 = _.words(b)[2];
+        const ifn = utils.getFbIdFromName.bind(utils);
+
+        let targetId = ifn(subCmd) || ifn(_.toLower(arg3)) || _.toNumber(arg3);
+        let targetName = utils.getNameFromFbId(targetId) || 'rando';
+
+        const targetIsTony = targetId === tonyId;
+        const senderIsTony = sendId === tonyId;
+        const targetImmune = untrollable.includes(targetId);
+        const senderImmune = untrollable.includes(sendId);
+
+        if (!arg3 || subCmd === 'add') {
+          if ((targetIsTony || targetImmune) && !senderImmune) {
+            targetId = sendId;
+            targetName = utils.getNameFromFbId(targetId);
+          }
+          troll.push(targetId);
+          sendMsg(`trolling ${targetName}`, thrId);
+        } else if ((senderIsTony || senderImmune) && (subCmd === 'rm' || subCmd === 'remove')) {
+          _.remove(troll, id => id === targetId);
+          sendMsg(`no longer trolling ${targetName}`, thrId);
+        } else if ((senderIsTony || senderImmune) && subCmd === 'whitelist') {
+          _.remove(troll, id => id === targetId);
+          untrollable.push(targetId);
+          sendMsg(`${targetName} cannot be trolled`, thrId);
+        } else if ((senderIsTony || senderImmune) && subCmd === 'unwhitelist') {
+          if ((targetIsTony || targetImmune) && !senderImmune) {
+            targetId = sendId;
+            targetName = utils.getNameFromFbId(targetId);
+          }
+          _.remove(untrollable, id => id === targetId);
+          sendMsg(`${targetName} can now be trolled`, thrId);
+        }
+
+        utils.debug(`cmdId: ${targetId}, targetImmune: ${targetImmune}, senderImmune: ${senderImmune}, untrollable: ${untrollable}, troll: ${troll}`);
       }
     } else if (utils.hasWords(event, 'LGH')) {
       chat.sendMessage({ body: '🔥' }, toId);
@@ -481,9 +493,7 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   }
   _.attempt(() => fs.unlink(botLoginLock, console.error));
 
-  clients[tonyId] = chat;
-
-  Object.assign(chat, { clients });
+  addClient(chat, tonyId);
 
   chat.setOptions({ listenEvents: true });
 
