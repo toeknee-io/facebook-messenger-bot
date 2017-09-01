@@ -11,6 +11,9 @@ const utils = require('./lib/utils.js');
 const bodyParser = require('body-parser');
 const emojiRegex = require('emoji-regex');
 const moment = require('./lib/moment-extended.js');
+const EventEmitter = require('events');
+
+const emitter = new EventEmitter();
 
 const server = express();
 const magic = new mmm.Magic(mmm.MAGIC_MIME);
@@ -25,6 +28,9 @@ const DIR_GIF = `${__dirname}/gif`;
 
 const clients = {};
 const addArtPending = [];
+
+const userIds = config.facebook.userId;
+const { tony: tonyId, jerry: jerryId, bot: botId } = userIds;
 
 const replyBadCmd = [
   'No', 'In you own ass', 'Eff that', '¯\u005C_(ツ)_/¯',
@@ -76,9 +82,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
 
   _.attempt(() => fs.unlink(botLoginLock, console.error));
 
-  const userIds = config.facebook.userId;
-
-  clients[userIds.bot] = chat;
+  clients[botId] = chat;
 
   Object.assign(chat, { clients });
 
@@ -93,23 +97,40 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     chat.sendMessage(msg, recipient, cb);
   }
 
-  function kickUserTemporary(userId, threadId, msg) {
-    const nameFromId = utils.getNameFromFbId(userId);
-    const name = nameFromId ? _.capitalize(nameFromId) : 'friend';
-    if (!_.isEmpty(msg)) {
-      sendMsg(msg, threadId);
-    }
-    chat.removeUserFromGroup(userId, threadId);
-    setTimeout(() => {
-      chat.addUserToGroup(userId, threadId, (err) => {
-        if (err) {
-          console.error(`failed to re-add kicked user ${name} (${userId}): ${err}`);
-        } else {
-          sendMsg(`Welcome back ${name}!`, threadId);
-        }
+  const kicked = [];
+
+  function kick(uid, tid) {
+    return new Promise((resolve, reject) => {
+      chat.removeUserFromGroup(uid, tid, (err) => {
+        if (err) { reject(err); } else { resolve(kicked.push({ uid, tid })); }
       });
-    }, 600000);
+    });
   }
+
+  function addUser(uid, tid) {
+    return new Promise((resolve, reject) => {
+      chat.addUserToGroup(uid, tid, (err) => {
+        if (err) { reject(err); } else { resolve(uid, tid); }
+      });
+    });
+  }
+
+  function kickUserTemporary(userId, threadId, kickMsg) {
+    if (!_.isEmpty(kickMsg)) {
+      sendMsg(kickMsg, threadId);
+    }
+    kick(userId, threadId)
+      .then(() =>
+        setTimeout(() => emitter.emit('addUser', userId, threadId)
+      , 100000))
+        .catch(console.error);
+  }
+
+  emitter.on('addUser', (uid, tid, msg = `Welcome back ${utils.getNameFromFbId(uid) || 'rando'}!`) => {
+    addUser(uid, tid)
+      .then(() => sendMsg(msg, tid))
+      .catch(err => console.error(`failed to re-add kicked user ${uid}`, err));
+  });
 
   setInterval(() => utils.checkPresence(chat), 60000);
 
@@ -185,42 +206,51 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     utils.assignEventProps(event);
     utils.logEvent(event);
 
-    const b = event.body;
-    const cmd = utils.getCmd(event);
-    const attachv = event.attachments;
-    const senderName = event.senderName;
-    const jerryId = config.facebook.userId.jerry;
-    const toId = ENV !== 'development'
-      ? event.threadID
-      : config.facebook.userId.tony;
+    const { senderName,
+      messageID: mesId, threadID: thrId, body: b,
+      attachments: attachv = [], senderID: sendId } = event;
+    const a0 = attachv[0] || {};
 
-    if (senderName === 'james' && !_.isEmpty(event.messageID)) {
-      chat.setMessageReaction(':thumbsdown:', event.messageID);
-    }
-    if (b === 'neutralize the jerry') {
-      kickUserTemporary(jerryId, event.threadID, null);
+    const cmd = utils.getCmd(event);
+
+    const toId = ENV !== 'development'
+      ? thrId
+      : tonyId;
+
+    if (senderName === 'james' && !_.isEmpty(mesId)) {
+      chat.setMessageReaction(':thumbsdown:', mesId);
+    } else if (b === 'neutralize the jerry') {
+      kickUserTemporary(jerryId, thrId, null);
+    } else if (b === 'unfreeze the channel idiot' ||
+    (eventType === 'photo' && (a0.width === 498 && a0.height === 250))) {
+      kicked.forEach(({ u, t }) => {
+        const name = utils.getNameFromFbId(sendId) || 'rando';
+        addUser(u, t)
+          .then(sendMsg(`rise wild ${name}`, t))
+          .catch(console.error);
+      });
     }
     if (senderName === 'jerry') {
-      const isV = _.endsWith(_.lowerCase(event.body), 'v');
+      const isV = _.endsWith(_.lowerCase(b), 'v');
       const msg = (_.isArray(attachv) && attachv.length) || isV
         ? kickUserTemporary(jerryId, event.threadID, isV ? 'v ya later!' : `Timeout time ${senderName}!`)
         : utils.getJerryReply();
-      if (typeof event.body === 'string') {
+      if (typeof b === 'string') {
         // chat.sendMessage(msg, toId);
         console.log(msg);
       }
     } else if (eventType === 'sticker' && event.attachments[0].stickerID === '1224059264332534') {
       chat.sendMessage({ sticker: '1224059264332534' }, toId, err => console.error(err));
-    } else if (event.senderName === 'steve' && typeof event.body === 'string'
-    && (~event.body.toLowerCase().indexOf('heat') || ~event.body.toLowerCase().indexOf('bull')
-    || ~event.body.indexOf('🐮'))) {
+    } else if (senderName === 'steve' && typeof b === 'string'
+    && (~b.toLowerCase().indexOf('heat') || ~b.toLowerCase().indexOf('bull')
+    || ~b.indexOf('🐮'))) {
       chat.sendMessage('Eff Bull', toId);
-    } else if (event.body && event.body.length <= 8
-    && emojiRegex().test(event.body)) {
+    } else if (b && b.length <= 8
+    && emojiRegex().test(b)) {
       let msg;
-      if (event.body === '🔥') {
+      if (b === '🔥') {
         msg = '🔥';
-      } else if (event.body === '🐊') {
+      } else if (b === '🐊') {
         msg = '🐊\u000A🐊\u000A🐊\u000A🐊\u000A🐊';
       } else {
         msg = emoji.random().emoji;
@@ -234,7 +264,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
           .pipe(fs.createWriteStream(`${DIR_ART}/${files.length}.jpg`, 'utf8'))
           .on('close', () => {
             writeLock = false;
-            addArtPending.splice(addArtPending.indexOf(event.senderID), 1);
+            addArtPending.splice(addArtPending.indexOf(sendId), 1);
             chat.sendMessage(`Art has been added at index ${files.length}`, toId);
             artFiles = fs.readdirSync(DIR_ART, 'utf8');
           });
@@ -271,7 +301,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       } else if (cmd === 'art') {
         if (subCmd) {
           if (subCmd === 'add') {
-            addArtPending.push(event.senderID);
+            addArtPending.push(sendId);
           } else if (subCmd === 'gallery') {
             const attachment = [];
             artFiles.forEach((file) => {
@@ -346,7 +376,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       }
       if (cmd === 'kick') {
         const kickId = config.facebook.userId[subCmd];
-        if (event.senderName === 'tony' && kickId) {
+        if (senderName === 'tony' && kickId) {
           console.log(`kick: ${subCmd} (${kickId}) from ${event.threadID}`);
           chat.removeUserFromGroup(kickId, event.threadID);
         } else {
@@ -355,7 +385,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       }
       if (cmd === 'jerbonics') {
         if (subCmd === 'add') {
-          utils.saveJerrism(event.body.split('/jerbonics add')[1].trim());
+          utils.saveJerrism(b.split('/jerbonics add')[1].trim());
         } else {
           chat.sendMessage(utils.getJerryReply(), toId);
         }
@@ -419,13 +449,13 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       if (cmd === 'joke') {
         rp('http://api.yomomma.info').then(res => chat.sendMessage(JSON.parse(res).joke, toId));
       }
-      if (cmd === '8' && event.body.match(/\w\?/)) {
+      if (cmd === '8' && b.match(/\w\?/)) {
         rp(config['8ball'].api)
         .then(res => chat.sendMessage(res, toId));
       }
     } else if (utils.hasWords(event, 'LGH')) {
       chat.sendMessage({ body: '🔥' }, toId);
-    } else if (event.body) {
+    } else if (b) {
       const autoResponses = utils.getAutoResponses(event);
       utils.debug(autoResponses);
       if (!_.isEmpty(autoResponses)) {
@@ -451,9 +481,7 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   }
   _.attempt(() => fs.unlink(botLoginLock, console.error));
 
-  const userIds = config.facebook.userId;
-
-  clients[userIds.tony] = chat;
+  clients[tonyId] = chat;
 
   Object.assign(chat, { clients });
 
