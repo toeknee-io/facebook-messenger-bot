@@ -244,10 +244,8 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
           .catch(console.error);
       });
     }
-    if (senderName === 'jerry' && attachv.length) {
-      const isV = _.endsWith(lowB, 'v');
-      const msg = isV ? 'v ya later!' : `Timeout time ${senderName}!`;
-      kickUserTemporary(jerryId, thrId, msg, 5000);
+    if (senderName === 'jerry' && _.endsWith(lowB, 'v')) {
+      kickUserTemporary(jerryId, thrId, 'v ya later!', 5000);
     } else if (typeof b === 'string' && troll.includes(sendId)) {
       sendMsg(utils.getJerryReply(), toId);
     } else if (eventType === 'sticker' && a0.stickerID === '1224059264332534') {
