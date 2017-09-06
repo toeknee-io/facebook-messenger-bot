@@ -110,19 +110,28 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
   function kick(uid, tid) {
     return new Promise((resolve, reject) => {
       chat.removeUserFromGroup(uid, tid, (err) => {
-        if (err) { reject(err); } else { resolve(kicked.push({ uid, tid })); }
+        if (err) {
+          reject(err);
+        } else {
+          kicked.push({ uid, tid });
+          resolve();
+        }
       });
     });
   }
 
   function addUser(uid, tid) {
     return new Promise((resolve, reject) => {
-      _.remove(kicked, k => k.uid === uid);
       if (utils.isBlockedThread(tid)) {
         reject(new Error(`Cannot addUser to blocked thread ${tid}`));
       } else {
         chat.addUserToGroup(uid, tid, (err) => {
-          if (err) { reject(err); } else { resolve(uid, tid); }
+          if (err) {
+            reject(err);
+          } else {
+            _.remove(kicked, k => k.uid === uid);
+            resolve(uid, tid);
+          }
         });
       }
     });
