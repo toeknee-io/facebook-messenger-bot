@@ -229,7 +229,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       messageID: mesId, threadID: thrId, body: b,
       attachments: attachv = [], senderID: sendId } = utils.assignEventProps(event);
 
-    utils.logEvent(event);
+    _.attempt(() => utils.logEvent(event));
 
     const lowB = _.toLower(b);
     const a0 = attachv[0] || {};
@@ -506,7 +506,7 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
 
   chat.listen((listenErr, event) => {
     utils.assignEventProps(event);
-    utils.logEvent(event);
+    _.attempt(() => utils.logEvent(event));
     utils.avengeKickedAlly(chat, event);
   });
 
