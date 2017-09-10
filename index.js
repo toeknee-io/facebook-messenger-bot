@@ -71,7 +71,7 @@ const botLoginLock = `${config.chat.credentials.tonyBot.email}.lock`;
 const botLocked = _.attempt(() => fs.readFileSync(botLoginLock));
 
 if (!_.isError(botLocked)) {
-  console.error('bot login locked, exiting', botLocked);
+  console.error('bot login locked, exiting', botLocked.toString());
   process.exit(1);
 }
 
@@ -488,7 +488,7 @@ const tonyLoginLock = `${config.chat.credentials.tony.email}.lock`;
 const tonyLocked = _.attempt(() => fs.readFileSync(tonyLoginLock));
 
 if (!_.isError(tonyLocked)) {
-  console.error('tony login locked, exiting', tonyLocked);
+  console.error('tony login locked, exiting', tonyLocked.toString());
   process.exit(1);
 }
 
@@ -498,7 +498,7 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
     console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
     process.exit(1);
   }
-  _.attempt(() => fs.unlink(botLoginLock, console.error));
+  _.attempt(() => fs.unlink(tonyLoginLock, console.error));
 
   addClient(chat, tonyId);
 
