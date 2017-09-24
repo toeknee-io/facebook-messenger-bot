@@ -85,7 +85,7 @@ function addClient(chat, id) {
 
 require('facebook-chat-api')(creds, (loginErr, chat) => {
   if (loginErr) {
-    fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+    // fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
     console.error(`creating lock file ${botLoginLock} and exiting due to login err`);
     process.exit(1);
   }
@@ -93,7 +93,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
 
   fs.writeFileSync('appstate-bot.json', JSON.stringify(chat.getAppState()));
 
-  _.attempt(() => fs.unlink(botLoginLock, console.error));
+  // _.attempt(() => fs.unlink(botLoginLock, console.error));
 
   addClient(chat, botId);
 
@@ -240,9 +240,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       ? thrId
       : tonyId;
 
-    if (senderName === 'james' && !_.isEmpty(mesId)) {
-      chat.setMessageReaction(':thumbsdown:', mesId);
-    } else if (lowB === 'neutralize the jerry') {
+    if (lowB === 'neutralize the jerry' || lowB === 'ntj') {
       kickUserTemporary(jerryId, thrId, null);
     } else if (lowB === 'unfreeze the channel idiot' ||
     (eventType === 'photo' && (a0.width === 498 && a0.height === 250))) {
@@ -494,12 +492,10 @@ if (!_.isError(tonyLocked)) {
 
 require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   if (loginErr) {
-    fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+    // fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
     console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
     process.exit(1);
   }
-  _.attempt(() => fs.unlink(tonyLoginLock, console.error));
-
   addClient(chat, tonyId);
 
   chat.setOptions({ listenEvents: true });
