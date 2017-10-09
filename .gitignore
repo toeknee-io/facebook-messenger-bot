@@ -11,7 +11,6 @@ npm_*
 test.js
 .DS_Store
 art/
-gif/
 reactions
 appstate-bot.json
 data/facebook-stickers.json

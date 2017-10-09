@@ -30,7 +30,7 @@ const clients = {};
 const addArtPending = [];
 
 const userIds = config.facebook.userId;
-const { tony: tonyId, jerry: jerryId, bot: botId } = userIds;
+const { tony: tonyId, jerry: jerryId, bot: botId, james: jamesId } = userIds;
 
 const troll = [];
 const untrollable = [tonyId, botId];
@@ -98,13 +98,15 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
   addClient(chat, botId);
 
   function sendMsg(msg, toId, cb = err => (err ? console.error(err) : false)) {
-    let recipient = toId;
-    if (isDev) {
-      recipient = config.facebook.userId.tony;
-      chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
-    } else {
-      chat.sendMessage(msg, recipient, cb);
-    }
+    return new Promise((resolve, reject) => {
+      let recipient = toId;
+      if (isDev) {
+        recipient = config.facebook.userId.tony;
+        chat.sendMessage(`[DEBUG] ${JSON.stringify(msg)}`, recipient);
+      } else {
+        chat.sendMessage(msg, recipient, cb);
+      }
+    });
   }
 
   function kick(uid, tid) {
@@ -214,10 +216,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
 
     const eventType = utils.getType(event);
 
-    if (eventType === 'message_reaction') {
-      utils.saveReaction(event).catch(console.error);
-    }
-
+    utils.saveReaction(event);
     utils.avengeKickedAlly(chat, event);
 
     if (utils.isBot(event) || utils.isCooldown(event) || remotePause) {
@@ -240,8 +239,25 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       ? thrId
       : tonyId;
 
+    if (eventType === 'message_reaction' && !utils.isBot(event)) {
+      // utils.getKickStats()
+      //   .then((stats) => {
+      //     const threadStats = stats[thrId];
+      //     if (threadStats) {
+      //       const count = threadStats[sendId] || 0;
+      //       if (count <= -5) {
+      //         const attachment = [fs.createReadStream(`${__dirname}/gif/reaction-kick.gif`)];
+      //         chat.sendMessage({ attachment }, toId, () => kickUserTemporary(sendId, thrId));
+      //       }
+      //     }
+      //   })
+      //   .catch(console.error);
+    }
+
     if (lowB === 'neutralize the jerry' || lowB === 'ntj') {
       kickUserTemporary(jerryId, thrId, null);
+    } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
+      kickUserTemporary(jamesId, thrId);
     } else if (lowB === 'unfreeze the channel idiot' ||
     (eventType === 'photo' && (a0.width === 498 && a0.height === 250))) {
       kicked.forEach(({ u, t }) => {
