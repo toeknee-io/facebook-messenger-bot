@@ -156,7 +156,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       .catch(err => console.error(`failed to re-add kicked user ${uid}`, err));
   });
 
-  setInterval(() => utils.checkPresence(chat), 60000);
+  // setInterval(() => utils.checkPresence(chat), 60000);
 
   server.use(bodyParser.json());
   server.use((req, res, next) => {
@@ -522,5 +522,5 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
     utils.avengeKickedAlly(chat, event);
   });
 
-  setInterval(() => utils.checkPresence(chat), 180000);
+  // setInterval(() => utils.checkPresence(chat), 180000);
 });
