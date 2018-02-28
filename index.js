@@ -517,9 +517,18 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
   chat.setOptions({ listenEvents: true });
 
   chat.listen((listenErr, event) => {
-    utils.assignEventProps(event);
+    const { threadID: thrId, attachments: attachv = [] } = utils.assignEventProps(event);
+
     _.attempt(() => utils.logEvent(event));
+
     utils.avengeKickedAlly(chat, event);
+
+    const eventType = utils.getType(event);
+    const a0 = attachv[0] || {};
+
+    if (eventType === 'sticker' && a0.stickerID === '1128766610602084') {
+      chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
+    }
   });
 
   // setInterval(() => utils.checkPresence(chat), 180000);
