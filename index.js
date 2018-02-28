@@ -526,8 +526,12 @@ require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
     const eventType = utils.getType(event);
     const a0 = attachv[0] || {};
 
-    if (eventType === 'sticker' && a0.stickerID === '1128766610602084') {
-      chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
+    if (eventType === 'sticker') {
+      if (a0.stickerID === '1128766610602084') {
+        chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
+      } else if (a0.stickerID === '1905753746341453') {
+        chat.sendMessage({ sticker: '1905753633008131' }, thrId, err => console.error(err));
+      }
     }
   });
 
