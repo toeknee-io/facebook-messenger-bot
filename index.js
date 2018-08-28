@@ -139,7 +139,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     });
   }
 
-  function kickUserTemporary(userId, threadId, kickMsg, timeoutMs = 100000) {
+  function kickUserTemporary(userId, threadId, kickMsg, timeoutMs = 3600000) {
     if (!_.isEmpty(kickMsg)) {
       sendMsg(kickMsg, threadId);
     }
@@ -255,7 +255,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     }
 
     if (lowB === 'neutralize the jerry' || lowB === 'ntj') {
-      kickUserTemporary(jerryId, thrId, null);
+      kickUserTemporary(jerryId, thrId, 3600000);
     } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
       kickUserTemporary(jamesId, thrId);
     } else if (lowB === 'unfreeze the channel idiot' ||
