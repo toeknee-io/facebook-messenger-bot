@@ -254,7 +254,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       //   .catch(console.error);
     }
 
-    if (lowB === 'neutralize the jerry' || lowB === 'ntj') {
+    if (lowB === 'neutralize the jerry' || lowB === 'ntj' || (lowB.startsWith('neutralize') && lowB.endsWith('jerry'))) {
       kickUserTemporary(jerryId, thrId, null);
     } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
       kickUserTemporary(jamesId, thrId);
