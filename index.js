@@ -139,7 +139,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     });
   }
 
-  function kickUserTemporary(userId, threadId, kickMsg, timeoutMs = 100000) {
+  function kickUserTemporary(userId, threadId, kickMsg, timeoutMs = 3600000) {
     if (!_.isEmpty(kickMsg)) {
       sendMsg(kickMsg, threadId);
     }
