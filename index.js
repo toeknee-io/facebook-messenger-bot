@@ -506,48 +506,48 @@ if (!_.isError(tonyLocked)) {
   process.exit(1);
 }
 
-require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-  if (loginErr) {
-    // fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
-    console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
-    process.exit(1);
-  }
-  addClient(chat, tonyId);
+// require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+//   if (loginErr) {
+//     // fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+//     console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
+//     process.exit(1);
+//   }
+//   addClient(chat, tonyId);
 
-  chat.setOptions({ listenEvents: true });
+//   chat.setOptions({ listenEvents: true });
 
-  let autoReply = false;
+//   let autoReply = false;
 
-  chat.listen((listenErr, event) => {
-    const { threadID: thrId, body: b, attachments: attachv = [],
-    senderID: sendId } = utils.assignEventProps(event);
+//   chat.listen((listenErr, event) => {
+//     const { threadID: thrId, body: b, attachments: attachv = [],
+//     senderID: sendId } = utils.assignEventProps(event);
 
-    _.attempt(() => utils.logEvent(event));
+//     _.attempt(() => utils.logEvent(event));
 
-    utils.avengeKickedAlly(chat, event);
+//     utils.avengeKickedAlly(chat, event);
 
-    if (sendId === tonyId) {
-      if (_.toLower(b) === 'autopilot off') {
-        autoReply = false;
-      }
-      if (_.toLower(b) === 'autopilot on') {
-        autoReply = true;
-      }
-    }
+//     if (sendId === tonyId) {
+//       if (_.toLower(b) === 'autopilot off') {
+//         autoReply = false;
+//       }
+//       if (_.toLower(b) === 'autopilot on') {
+//         autoReply = true;
+//       }
+//     }
 
-    if (autoReply) {
-      const eventType = utils.getType(event);
-      const a0 = attachv[0] || {};
+//     if (autoReply) {
+//       const eventType = utils.getType(event);
+//       const a0 = attachv[0] || {};
 
-      if (eventType === 'sticker') {
-        if (a0.stickerID === '1128766610602084') {
-          chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
-        } else if (a0.stickerID === '1905753746341453') {
-          chat.sendMessage({ sticker: '1905753633008131' }, thrId, err => console.error(err));
-        }
-      }
-    }
-  });
+//       if (eventType === 'sticker') {
+//         if (a0.stickerID === '1128766610602084') {
+//           chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
+//         } else if (a0.stickerID === '1905753746341453') {
+//           chat.sendMessage({ sticker: '1905753633008131' }, thrId, err => console.error(err));
+//         }
+//       }
+//     }
+//   });
 
-  // setInterval(() => utils.checkPresence(chat), 180000);
-});
+//   // setInterval(() => utils.checkPresence(chat), 180000);
+// });
