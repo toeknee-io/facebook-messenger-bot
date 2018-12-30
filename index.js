@@ -1,5 +1,6 @@
 const fs = require('fs');
 const _ = require('lodash');
+const pm2 = require('pm2');
 const path = require('path');
 const mmm = require('mmmagic');
 const request = require('request');
@@ -8,6 +9,7 @@ const emoji = require('node-emoji');
 const rp = require('request-promise');
 const EventEmitter = require('events');
 const config = require('./config.json');
+const pm2config = require('./pm2.config.js');
 const utils = require('./lib/utils.js');
 const bodyParser = require('body-parser');
 const emojiRegex = require('emoji-regex');
@@ -48,6 +50,8 @@ let writeLock = false;
 let remotePause = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
+pm2.connect(console.error);
+console.log(pm2.describe(pm2config.apps[0].name, console.error));
 process.on('SIGINT', () => {
   Object.values(clients).forEach((client) => {
     if (_.isFunction(client.logout)) {
@@ -55,6 +59,8 @@ process.on('SIGINT', () => {
       // client.logout();
     }
   });
+
+  pm2.disconnect();
 });
 
 process.on('uncaughtException', (err) => {
@@ -72,6 +78,7 @@ const botLocked = _.attempt(() => fs.readFileSync(botLoginLock));
 
 if (!_.isError(botLocked)) {
   console.error('bot login locked, exiting', botLocked.toString());
+  pm2.stop(pm2config.apps[0].name, console.error);
   process.exit(1);
 }
 
@@ -85,8 +92,9 @@ function addClient(chat, id) {
 
 require('facebook-chat-api')(creds, (loginErr, chat) => {
   if (loginErr) {
-    // fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
-    console.error(`creating lock file ${botLoginLock} and exiting due to login err`);
+    console.error(`creating login lock file ${botLoginLock}`);
+    fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+    pm2.stop(pm2config.apps[0].name, console.error);
     process.exit(1);
   }
   chat.setOptions(config.chat.options);
@@ -98,7 +106,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
   addClient(chat, botId);
 
   function sendMsg(msg, toId, cb = err => (err ? console.error(err) : false)) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       let recipient = toId;
       if (isDev) {
         recipient = config.facebook.userId.tony;
@@ -106,6 +114,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       } else {
         chat.sendMessage(msg, recipient, cb);
       }
+      resolve();
     });
   }
 
@@ -225,7 +234,8 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     }
 
     const { senderName,
-      messageID: mesId, threadID: thrId, body: b,
+      // messageID: mesId, threadID: thrId, body: b,
+      threadID: thrId, body: b,
       attachments: attachv = [], senderID: sendId } = utils.assignEventProps(event);
 
     _.attempt(() => utils.logEvent(event));
@@ -254,7 +264,8 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       //   .catch(console.error);
     }
 
-    if (lowB === 'neutralize the jerry' || lowB === 'ntj' || (lowB.startsWith('neutralize') && lowB.endsWith('jerry'))) {
+    if (lowB === 'neutralize the jerry' || lowB === 'ntj'
+      || ((lowB.startsWith('neutralize') || lowB.startsWith('neut')) && (lowB.endsWith('jerry') || lowB.endsWith('j')))) {
       kickUserTemporary(jerryId, thrId, null);
     } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
       kickUserTemporary(jamesId, thrId);
@@ -506,48 +517,49 @@ if (!_.isError(tonyLocked)) {
   process.exit(1);
 }
 
-// require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-//   if (loginErr) {
-//     // fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
-//     console.error(`creating lock file ${tonyLoginLock} and exiting due to login err`);
-//     process.exit(1);
-//   }
-//   addClient(chat, tonyId);
+require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+  if (loginErr) {
+    console.error(`creating login lock file ${tonyLoginLock}`);
+    fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+    pm2.stop(pm2config.apps[0].name, console.error);
+    process.exit(1);
+  }
+  addClient(chat, tonyId);
 
-//   chat.setOptions({ listenEvents: true });
+  chat.setOptions({ listenEvents: true });
 
-//   let autoReply = false;
+  let autoReply = false;
 
-//   chat.listen((listenErr, event) => {
-//     const { threadID: thrId, body: b, attachments: attachv = [],
-//     senderID: sendId } = utils.assignEventProps(event);
+  chat.listen((listenErr, event) => {
+    const { threadID: thrId, body: b, attachments: attachv = [],
+    senderID: sendId } = utils.assignEventProps(event);
 
-//     _.attempt(() => utils.logEvent(event));
+    _.attempt(() => utils.logEvent(event));
 
-//     utils.avengeKickedAlly(chat, event);
+    utils.avengeKickedAlly(chat, event);
 
-//     if (sendId === tonyId) {
-//       if (_.toLower(b) === 'autopilot off') {
-//         autoReply = false;
-//       }
-//       if (_.toLower(b) === 'autopilot on') {
-//         autoReply = true;
-//       }
-//     }
+    if (sendId === tonyId) {
+      if (_.toLower(b) === 'autopilot off') {
+        autoReply = false;
+      }
+      if (_.toLower(b) === 'autopilot on') {
+        autoReply = true;
+      }
+    }
 
-//     if (autoReply) {
-//       const eventType = utils.getType(event);
-//       const a0 = attachv[0] || {};
+    if (autoReply) {
+      const eventType = utils.getType(event);
+      const a0 = attachv[0] || {};
 
-//       if (eventType === 'sticker') {
-//         if (a0.stickerID === '1128766610602084') {
-//           chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
-//         } else if (a0.stickerID === '1905753746341453') {
-//           chat.sendMessage({ sticker: '1905753633008131' }, thrId, err => console.error(err));
-//         }
-//       }
-//     }
-//   });
+      if (eventType === 'sticker') {
+        if (a0.stickerID === '1128766610602084') {
+          chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
+        } else if (a0.stickerID === '1905753746341453') {
+          chat.sendMessage({ sticker: '1905753633008131' }, thrId, err => console.error(err));
+        }
+      }
+    }
+  });
 
-//   // setInterval(() => utils.checkPresence(chat), 180000);
-// });
+  // setInterval(() => utils.checkPresence(chat), 180000);
+});

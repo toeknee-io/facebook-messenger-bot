@@ -12,9 +12,9 @@ module.exports = {
       env_production: {
         NODE_ENV: 'production',
       },
-      log_date_format: 'HH:mm:ss.SSS',
-      min_uptime: 10000,
-      max_restarts: 10,
+      log_date_format: 'MM-DD-YYYY HH:mm:ss.SSS',
+      min_uptime: 30000,
+      max_restarts: 5,
       restart_delay: 30000,
     },
   ],

@@ -9,7 +9,7 @@
   "scripts": {
     "test": "./node_modules/.bin/eslint .",
     "tail": "pm2 logs --lines 50 facebook-messenger-bot",
-    "debug": "pm2 start $npm_package_config_pm2Config --env development && npm run-script tail",
+    "debug": "pm2 start pm2.config.js --env development && npm run-script tail",
     "start": "pm2 start $npm_package_config_pm2Config --env production",
     "stop": "pm2 stop $npm_package_config_pm2Config",
     "restart": "pm2 restart $npm_package_config_pm2Config && npm run-script tail",
@@ -33,6 +33,7 @@
     "moment-precise-range-plugin": "1.2.0",
     "moment-timezone": "0.5.11",
     "node-emoji": "1.8.1",
+    "pm2": "3.2.4",
     "request": "2.79.0",
     "request-promise": "4.1.1"
   },
