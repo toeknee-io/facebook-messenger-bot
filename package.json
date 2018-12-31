@@ -7,8 +7,8 @@
     "pm2Config": "pm2.config.js"
   },
   "scripts": {
-    "test": "./node_modules/.bin/eslint .",
-    "tail": "pm2 logs --lines 50 facebook-messenger-bot",
+    "test": "./node_modules/mocha/bin/mocha ./test/test.js",
+    "tail": "pm2 logs --lines 500 facebook-messenger-bot",
     "debug": "pm2 start pm2.config.js --env development && npm run-script tail",
     "start": "pm2 start $npm_package_config_pm2Config --env production",
     "stop": "pm2 stop $npm_package_config_pm2Config",
@@ -35,12 +35,15 @@
     "node-emoji": "1.8.1",
     "pm2": "3.2.4",
     "request": "2.79.0",
-    "request-promise": "4.1.1"
+    "request-promise": "4.1.1",
+    "words-to-numbers": "1.5.1"
   },
   "devDependencies": {
+    "chai": "4.2.0",
     "eslint": "3.13.1",
     "eslint-config-airbnb-base": "11.0.1",
-    "eslint-plugin-import": "2.2.0"
+    "eslint-plugin-import": "2.2.0",
+    "mocha": "5.2.0"
   },
   "engines": {
     "node": "7.7.1"

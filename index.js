@@ -50,8 +50,9 @@ let writeLock = false;
 let remotePause = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
+console.log('connecting to pm2 daemon');
 pm2.connect(console.error);
-console.log(pm2.describe(pm2config.apps[0].name, console.error));
+
 process.on('SIGINT', () => {
   Object.values(clients).forEach((client) => {
     if (_.isFunction(client.logout)) {
@@ -59,7 +60,10 @@ process.on('SIGINT', () => {
       // client.logout();
     }
   });
+});
 
+process.on('exit', () => {
+  console.log('disconnecting from pm2 daemon');
   pm2.disconnect();
 });
 
@@ -149,9 +153,13 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
   }
 
   function kickUserTemporary(userId, threadId, kickMsg, timeoutMs = 3600000) {
-    if (!_.isEmpty(kickMsg)) {
+    if (_.isFinite(kickMsg)) {
+      // eslint-disable-next-line no-param-reassign
+      timeoutMs = kickMsg;
+    } else if (_.isString(kickMsg) && !_.isEmpty(kickMsg)) {
       sendMsg(kickMsg, threadId);
     }
+
     kick(userId, threadId)
       .then(() =>
         setTimeout(() => emitter.emit('addUser', userId, threadId)
@@ -264,9 +272,18 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       //   .catch(console.error);
     }
 
-    if (lowB === 'neutralize the jerry' || lowB === 'ntj'
-      || ((lowB.startsWith('neutralize') || lowB.startsWith('neut')) && (lowB.endsWith('jerry') || lowB.endsWith('j')))) {
-      kickUserTemporary(jerryId, thrId, null);
+    // const jerryRegex = /^[neut(ralize)?.*j(erry)?|ntj]/i;
+    // const timerRegex = /for.*[0-9|a-zA-Z].*[seconds|minutes|hours]?/i;
+
+    if (lowB === 'neutralize the jerry' || lowB === 'ntj' ||
+      (
+        (lowB.startsWith('neutralize') || lowB.startsWith('neut'))
+        &&
+        (lowB.endsWith('jerry') || lowB.endsWith('j'))
+      )
+    ) {
+      const timeoutMs = utils.getKickTimeoutMs(lowB);
+      kickUserTemporary(jerryId, thrId, timeoutMs > 86400000 ? 86400000 : timeoutMs);
     } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
       kickUserTemporary(jamesId, thrId);
     } else if (lowB === 'unfreeze the channel idiot' ||
@@ -280,6 +297,10 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     }
     if (senderName === 'jerry' && _.endsWith(lowB, 'v')) {
       kickUserTemporary(jerryId, thrId, 'v ya later!', 5000);
+    } else if (senderName === 'jerry' && _.endsWith(lowB, 'bitches')) {
+      kickUserTemporary(jerryId, thrId, 'Who\'s the bitch now?!', 5000);
+    } else if (senderName === 'jerry' && _.endsWith(lowB, 'in you ass')) {
+      kickUserTemporary(jerryId, thrId, 'In you own ass', 5000);
     } else if (typeof b === 'string' && troll.includes(sendId)) {
       sendMsg(utils.getJerryReply(), toId);
     } else if (eventType === 'sticker' && a0.stickerID === '1224059264332534') {
