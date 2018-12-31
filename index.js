@@ -2,7 +2,6 @@ const fs = require('fs');
 const _ = require('lodash');
 const pm2 = require('pm2');
 const path = require('path');
-const mmm = require('mmmagic');
 const request = require('request');
 const express = require('express');
 const emoji = require('node-emoji');
@@ -18,7 +17,6 @@ const emojiRegex = require('emoji-regex');
 const emitter = new EventEmitter();
 
 const server = express();
-const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
 const isDev = ENV === 'development';
@@ -51,7 +49,7 @@ let remotePause = false;
 let artFiles = fs.readdirSync(DIR_ART, 'utf8');
 
 console.log('connecting to pm2 daemon');
-pm2.connect(console.error);
+pm2.connect(console.log);
 
 process.on('SIGINT', () => {
   Object.values(clients).forEach((client) => {
@@ -275,13 +273,9 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
     // const jerryRegex = /^[neut(ralize)?.*j(erry)?|ntj]/i;
     // const timerRegex = /for.*[0-9|a-zA-Z].*[seconds|minutes|hours]?/i;
 
-    if (lowB === 'neutralize the jerry' || lowB === 'ntj' ||
-      (
-        (lowB.startsWith('neutralize') || lowB.startsWith('neut'))
-        &&
-        (lowB.endsWith('jerry') || lowB.endsWith('j'))
-      )
-    ) {
+    const regEx = /^(?:n(eutralize)?).*\b(?:j|jerbz?|jerry)\b|ntj/gi;
+    if (regEx.test(lowB)) {
+      console.log(regEx.test(lowB));
       const timeoutMs = utils.getKickTimeoutMs(lowB);
       kickUserTemporary(jerryId, thrId, timeoutMs > 86400000 ? 86400000 : timeoutMs);
     } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
@@ -316,8 +310,6 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
         msg = '🔥';
       } else if (b === '🐊') {
         msg = '🐊\u000A🐊\u000A🐊\u000A🐊\u000A🐊';
-      } else {
-        msg = emoji.random().emoji;
       }
       chat.sendMessage(msg, toId);
     } else if (utils.inArtQueue(addArtPending, event)
@@ -535,6 +527,7 @@ const tonyLocked = _.attempt(() => fs.readFileSync(tonyLoginLock));
 
 if (!_.isError(tonyLocked)) {
   console.error('tony login locked, exiting', tonyLocked.toString());
+  pm2.stop(pm2config.apps[0].name, console.error);
   process.exit(1);
 }
 
