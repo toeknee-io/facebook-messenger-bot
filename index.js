@@ -4,7 +4,7 @@ const pm2 = require('pm2');
 const path = require('path');
 const request = require('request');
 const express = require('express');
-const emoji = require('node-emoji');
+const mmm = require('mmmagic');
 const rp = require('request-promise');
 const EventEmitter = require('events');
 const config = require('./config.json');
@@ -17,6 +17,7 @@ const emojiRegex = require('emoji-regex');
 const emitter = new EventEmitter();
 
 const server = express();
+const magic = new mmm.Magic(mmm.MAGIC_MIME);
 
 const ENV = process.env.NODE_ENV;
 const isDev = ENV === 'development';
@@ -289,7 +290,9 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
           .catch(console.error);
       });
     }
-    if (senderName === 'jerry' && _.endsWith(lowB, 'v')) {
+    if (lowB === 'rise wild jerry') {
+      emitter.emit('addUser', jerryId, thrId);
+    } else if (senderName === 'jerry' && _.endsWith(lowB, 'v')) {
       kickUserTemporary(jerryId, thrId, 'v ya later!', 5000);
     } else if (senderName === 'jerry' && _.endsWith(lowB, 'bitches')) {
       kickUserTemporary(jerryId, thrId, 'Who\'s the bitch now?!', 5000);
