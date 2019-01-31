@@ -276,7 +276,6 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
 
     const regEx = /^(?:n(eutralize)?).*\b(?:j|jerbz?|jerry)\b|ntj/gi;
     if (regEx.test(lowB)) {
-      console.log(regEx.test(lowB));
       const timeoutMs = utils.getKickTimeoutMs(lowB);
       kickUserTemporary(jerryId, thrId, timeoutMs > 86400000 ? 86400000 : timeoutMs);
     } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
