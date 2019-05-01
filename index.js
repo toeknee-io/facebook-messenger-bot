@@ -6,12 +6,18 @@ const request = require('request');
 const express = require('express');
 const mmm = require('mmmagic');
 const rp = require('request-promise');
+const readline = require('readline');
 const EventEmitter = require('events');
 const config = require('./config.json');
 const pm2config = require('./pm2.config.js');
 const utils = require('./lib/utils.js');
 const bodyParser = require('body-parser');
 const emojiRegex = require('emoji-regex');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 // const moment = require('./lib/moment-extended.js');
 
 const emitter = new EventEmitter();
@@ -95,10 +101,20 @@ function addClient(chat, id) {
 
 require('facebook-chat-api')(creds, (loginErr, chat) => {
   if (loginErr) {
-    console.error(`creating login lock file ${botLoginLock}`);
-    fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
-    pm2.stop(pm2config.apps[0].name, console.error);
-    process.exit(1);
+    const m = loginErr.error.toLowerCase();
+    const c = config.chat.credentials.tonyBot;
+    if (m === 'login-approval') {
+      console.log('Enter code > ');
+      rl.on('line', (line) => {
+        loginErr.continue(line);
+        rl.close();
+      });
+    } else if (m.includes('wrong')) {
+      console.error(`creating login lock file ${botLoginLock}`);
+      fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+      pm2.stop(pm2config.apps[0].name, console.error);
+      process.exit(1);
+    }
   }
   chat.setOptions(config.chat.options);
 
@@ -533,49 +549,49 @@ if (!_.isError(tonyLocked)) {
   process.exit(1);
 }
 
-require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
-  if (loginErr) {
-    console.error(`creating login lock file ${tonyLoginLock}`);
-    fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
-    pm2.stop(pm2config.apps[0].name, console.error);
-    process.exit(1);
-  }
-  addClient(chat, tonyId);
+// require('facebook-chat-api')(config.chat.credentials.tony, (loginErr, chat) => {
+//   if (loginErr) {
+//     console.error(`creating login lock file ${tonyLoginLock}`);
+//     fs.writeFileSync(tonyLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+//     pm2.stop(pm2config.apps[0].name, console.error);
+//     process.exit(1);
+//   }
+//   addClient(chat, tonyId);
 
-  chat.setOptions({ listenEvents: true });
+//   chat.setOptions({ listenEvents: true });
 
-  let autoReply = false;
+//   let autoReply = false;
 
-  chat.listen((listenErr, event) => {
-    const { threadID: thrId, body: b, attachments: attachv = [],
-    senderID: sendId } = utils.assignEventProps(event);
+//   chat.listen((listenErr, event) => {
+//     const { threadID: thrId, body: b, attachments: attachv = [],
+//     senderID: sendId } = utils.assignEventProps(event);
 
-    _.attempt(() => utils.logEvent(event));
+//     _.attempt(() => utils.logEvent(event));
 
-    utils.avengeKickedAlly(chat, event);
+//     utils.avengeKickedAlly(chat, event);
 
-    if (sendId === tonyId) {
-      if (_.toLower(b) === 'autopilot off') {
-        autoReply = false;
-      }
-      if (_.toLower(b) === 'autopilot on') {
-        autoReply = true;
-      }
-    }
+//     if (sendId === tonyId) {
+//       if (_.toLower(b) === 'autopilot off') {
+//         autoReply = false;
+//       }
+//       if (_.toLower(b) === 'autopilot on') {
+//         autoReply = true;
+//       }
+//     }
 
-    if (autoReply) {
-      const eventType = utils.getType(event);
-      const a0 = attachv[0] || {};
+//     if (autoReply) {
+//       const eventType = utils.getType(event);
+//       const a0 = attachv[0] || {};
 
-      if (eventType === 'sticker') {
-        if (a0.stickerID === '1128766610602084') {
-          chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
-        } else if (a0.stickerID === '1905753746341453') {
-          chat.sendMessage({ sticker: '1905753633008131' }, thrId, err => console.error(err));
-        }
-      }
-    }
-  });
+//       if (eventType === 'sticker') {
+//         if (a0.stickerID === '1128766610602084') {
+//           chat.sendMessage({ sticker: '526120117519687' }, thrId, err => console.error(err));
+//         } else if (a0.stickerID === '1905753746341453') {
+//           chat.sendMessage({ sticker: '1905753633008131' }, thrId, err => console.error(err));
+//         }
+//       }
+//     }
+//   });
 
-  // setInterval(() => utils.checkPresence(chat), 180000);
-});
+//   // setInterval(() => utils.checkPresence(chat), 180000);
+// });
