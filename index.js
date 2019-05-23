@@ -101,21 +101,13 @@ function addClient(chat, id) {
 
 require('facebook-chat-api')(creds, (loginErr, chat) => {
   if (loginErr) {
-    const m = loginErr.error.toLowerCase();
-    const c = config.chat.credentials.tonyBot;
-    if (m === 'login-approval') {
-      console.log('Enter code > ');
-      rl.on('line', (line) => {
-        loginErr.continue(line);
-        rl.close();
-      });
-    } else if (m.includes('wrong')) {
-      console.error(`creating login lock file ${botLoginLock}`);
-      fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
-      pm2.stop(pm2config.apps[0].name, console.error);
-      process.exit(1);
-    }
+    console.error(loginErr);
+    console.error(`creating login lock file ${botLoginLock}`);
+    fs.writeFileSync(botLoginLock, JSON.stringify(loginErr, null, '\t'), 'utf8');
+    pm2.stop(pm2config.apps[0].name, console.error);
+    process.exit(1);
   }
+
   chat.setOptions(config.chat.options);
 
   fs.writeFileSync('appstate-bot.json', JSON.stringify(chat.getAppState()));
