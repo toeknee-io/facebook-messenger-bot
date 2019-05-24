@@ -37,7 +37,7 @@ const clients = {};
 const addArtPending = [];
 
 const userIds = config.facebook.userId;
-const { tony: tonyId, jerry: jerryId, bot: botId, james: jamesId } = userIds;
+const { tony: tonyId, jerry: jerryId, bot: botId, james: jamesId, 'jon d': jonId } = userIds;
 
 const troll = [];
 const untrollable = [tonyId, botId];
@@ -288,6 +288,8 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       kickUserTemporary(jerryId, thrId, timeoutMs > 86400000 ? 86400000 : timeoutMs);
     } else if (lowB === 'chinese to go' || lowB === 'enough' || lowB === 'enuff' || lowB === 'go eat a cat') {
       kickUserTemporary(jamesId, thrId);
+    } else if (lowB === 'ntd') {
+      kickUserTemporary(jonId, thrId);
     } else if (lowB === 'unfreeze the channel idiot' ||
     (eventType === 'photo' && (a0.width === 498 && a0.height === 250))) {
       kicked.forEach(({ u, t }) => {
@@ -309,6 +311,10 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       sendMsg(utils.getJerryReply(), toId);
     } else if (eventType === 'sticker' && a0.stickerID === '1224059264332534') {
       chat.sendMessage({ sticker: '1224059264332534' }, toId, err => console.error(err));
+    } else if (lowB === 'sad') {
+      chat.sendMessage({
+        sticker: '1578940969102364',
+      }, toId, err => console.error(err));
     } else if (senderName === 'steve' && typeof b === 'string'
     && (~b.toLowerCase().indexOf('heat') || ~b.toLowerCase().indexOf('bull')
     || ~b.indexOf('🐮'))) {
