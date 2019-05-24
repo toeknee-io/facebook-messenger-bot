@@ -297,7 +297,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
           .catch(console.error);
       });
     }
-    if (lowB === 'rise wild jerry') {
+    if (lowB === 'rise wild jerry' || lowB === 'rwj' || lowB === 'rise the j') {
       emitter.emit('addUser', jerryId, thrId);
     } else if (senderName === 'jerry' && _.endsWith(lowB, 'v')) {
       kickUserTemporary(jerryId, thrId, 'v ya later!', 5000);
