@@ -313,7 +313,7 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       chat.sendMessage({
         sticker: '1578940969102364',
       }, toId, err => console.error(err));
-      kickUserTemporary(jonId, thrId);
+      // kickUserTemporary(jonId, thrId);
     } else if (senderName === 'steve' && typeof b === 'string'
     && (~b.toLowerCase().indexOf('heat') || ~b.toLowerCase().indexOf('bull')
     || ~b.indexOf('🐮'))) {
