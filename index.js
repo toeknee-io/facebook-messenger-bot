@@ -160,18 +160,24 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
   }
 
   function kickUserTemporary(userId, threadId, kickMsg, timeoutMs = 3600000) {
+    let msg = '';
     if (_.isFinite(kickMsg)) {
       // eslint-disable-next-line no-param-reassign
       timeoutMs = kickMsg;
-    } else if (_.isString(kickMsg) && !_.isEmpty(kickMsg)) {
-      sendMsg(kickMsg, threadId);
+      msg = `removing ${utils.getNameFromFbId(userId) || 'rando'} for ${timeoutMs / 60000} mins`;
+    } else {
+      msg = `${kickMsg} (removing for ${timeoutMs / 60000} mins)`;
     }
 
-    kick(userId, threadId)
-      .then(() =>
-        setTimeout(() => emitter.emit('addUser', userId, threadId)
-      , timeoutMs))
-        .catch(console.error);
+    sendMsg(msg, threadId)
+      .then(() => {
+        kick(userId, threadId);
+      }).then(() =>
+        setTimeout(() => emitter.emit('addUser', userId, threadId), timeoutMs)
+      ).catch((kickErr) => {
+        console.error(kickErr);
+        sendMsg(`${kickErr}\u000A\u000A@Mark?!`, threadId);
+      });
   }
 
   emitter.on('addUser', (uid, tid, msg = `Welcome back ${utils.getNameFromFbId(uid) || 'rando'}!`) => {
@@ -303,8 +309,8 @@ require('facebook-chat-api')(creds, (loginErr, chat) => {
       kickUserTemporary(jerryId, thrId, 'v ya later!', 5000);
     } else if (senderName === 'jerry' && _.endsWith(lowB, 'bitches')) {
       kickUserTemporary(jerryId, thrId, 'Who\'s the bitch now?!', 5000);
-    } else if (senderName === 'jerry' && _.endsWith(lowB, 'in you ass')) {
-      kickUserTemporary(jerryId, thrId, 'In you own ass', 5000);
+    } else if (senderName === 'jerry' && (_.endsWith(lowB, 'ass') || _.endsWith(lowB, 'culo'))) {
+      kickUserTemporary(jerryId, thrId, `In you own ${_.endsWith(lowB, 'ass') ? 'ass' : 'culo'}`, 1800000);
     } else if (typeof b === 'string' && troll.includes(sendId)) {
       sendMsg(utils.getJerryReply(), toId);
     } else if (eventType === 'sticker' && a0.stickerID === '1224059264332534') {
